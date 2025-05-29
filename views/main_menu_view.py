@@ -12,7 +12,12 @@ from auth import logout_user, get_logged_in_user # Logout y get_logged_in_user a
 
 # Funciones de utilidad que pueden ser genéricas para todas las vistas CLI
 def display_menu(options):
-    """Muestra un menú numerado en la consola."""
+    """
+    Muestra un menú numerado en la consola.
+
+    Args:
+        options (list): Una lista de cadenas, donde cada cadena es una opción del menú.
+    """
     print("\n" + "="*40)
     print("           MENÚ PRINCIPAL           ")
     print("="*40)
@@ -20,8 +25,17 @@ def display_menu(options):
         print(f"{i + 1}. {option}")
     print("="*40)
 
+
 def get_menu_choice(num_options):
-    """Solicita al usuario una elección de menú válida."""
+    """
+    Solicita al usuario una elección de menú válida.
+
+    Args:
+        num_options (int): El número total de opciones en el menú.
+
+    Returns:
+        int: La opción válida elegida por el usuario.
+    """
     while True:
         try:
             choice = int(input("Seleccione una opción: "))
