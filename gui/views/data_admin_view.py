@@ -5,8 +5,8 @@ import sys
 
 # Importar los controladores necesarios
 from controllers.user_controller import UserController
-from controllers.participant_controller import ParticipantController 
-# from controllers.subject_controller import SubjectController
+from controllers.participant_controller import ParticipantController
+from controllers.subject_controller import SubjectController # ¡NUEVA IMPORTACIÓN!
 # from controllers.period_controller import PeriodController
 # from controllers.project_controller import ProjectController
 
@@ -25,8 +25,8 @@ class DataAdminView(tk.Frame):
 
         # Inicializar controladores
         self.user_controller = UserController()
-        self.participant_controller = ParticipantController() # Instancia del controlador de Participantes
-        # self.subject_controller = SubjectController()
+        self.participant_controller = ParticipantController()
+        self.subject_controller = SubjectController() # ¡NUEVA INSTANCIA DEL CONTROLADOR!
         # self.period_controller = PeriodController()
         # self.project_controller = ProjectController()
 
@@ -58,12 +58,12 @@ class DataAdminView(tk.Frame):
         # --- Pestaña de Participantes ---
         self.participant_tab = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.participant_tab, text="Participantes")
-        self._setup_participant_tab() # Llamar a la configuración de participantes
+        self._setup_participant_tab()
 
-        # --- Pestaña de Materias (Placeholder) ---
+        # --- Pestaña de Materias ¡MODIFICACIÓN! ---
         self.subject_tab = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.subject_tab, text="Materias")
-        ttk.Label(self.subject_tab, text="Gestión de Materias (próximamente)").pack(pady=50)
+        self._setup_subject_tab() # ¡Llamar a la configuración de materias!
 
         # --- Pestaña de Periodos (Placeholder) ---
         self.period_tab = ttk.Frame(self.notebook, padding=10)
@@ -90,7 +90,9 @@ class DataAdminView(tk.Frame):
         if selected_tab == "Usuarios":
             self.load_user_data()
         elif selected_tab == "Participantes":
-            self.load_participant_data() # Cargar datos de participantes
+            self.load_participant_data()
+        elif selected_tab == "Materias": # ¡NUEVO!
+            self.load_subject_data() 
         # Añade aquí la carga de datos para otras pestañas
 
     # =======================================================
@@ -310,13 +312,10 @@ class DataAdminView(tk.Frame):
 
 
     # =======================================================
-    # Métodos y Widgets para la Pestaña de PARTICIPANTES
+    # Métodos y Widgets para la Pestaña de PARTICIPANTES (sin cambios)
     # =======================================================
     def _setup_participant_tab(self):
-        """
-        Configura los widgets para la gestión de participantes dentro de su pestaña.
-        """
-        # Frame superior para el Treeview de la lista de participantes
+        # ... (Tu código de la pestaña de participantes) ...
         tree_frame = ttk.Frame(self.participant_tab)
         tree_frame.pack(pady=10, fill='both', expand=True)
 
@@ -328,7 +327,6 @@ class DataAdminView(tk.Frame):
         scrollbar.config(command=self.participant_tree.yview)
         scrollbar.pack(side='right', fill='y')
 
-        # Definir encabezados de las columnas (basado en tu esquema 'participantes')
         self.participant_tree.heading("ID", text="ID")
         self.participant_tree.heading("Tipo", text="Tipo")
         self.participant_tree.heading("Nombre", text="Nombre")
@@ -338,7 +336,6 @@ class DataAdminView(tk.Frame):
         self.participant_tree.heading("Teléfono", text="Teléfono")
         self.participant_tree.heading("Carrera", text="Carrera")
 
-        # Configurar anchos de columna (ajusta según necesites)
         self.participant_tree.column("ID", width=50, stretch=tk.NO)
         self.participant_tree.column("Tipo", width=80, stretch=tk.NO)
         self.participant_tree.column("Nombre", width=120, stretch=tk.NO)
@@ -350,15 +347,11 @@ class DataAdminView(tk.Frame):
 
         self.participant_tree.pack(fill='both', expand=True)
 
-        # Vincular el evento de selección en el Treeview
         self.participant_tree.bind("<<TreeviewSelect>>", self._load_participant_data_to_form)
 
-        # Frame inferior para los formularios de entrada y botones de acción
         input_frame = ttk.LabelFrame(self.participant_tab, text="Detalles del Participante", padding=15)
         input_frame.pack(pady=20, fill='x', expand=False) 
 
-        # Campos de entrada
-        # Fila 1
         ttk.Label(input_frame, text="ID:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
         self.participant_id_entry = ttk.Entry(input_frame, width=10, state='readonly')
         self.participant_id_entry.grid(row=0, column=1, padx=5, pady=5, sticky='w')
@@ -366,13 +359,12 @@ class DataAdminView(tk.Frame):
         ttk.Label(input_frame, text="Tipo:").grid(row=0, column=2, padx=5, pady=5, sticky='w')
         self.participant_type_combobox = ttk.Combobox(input_frame, values=['Estudiante', 'Docente'], state='readonly', width=15)
         self.participant_type_combobox.grid(row=0, column=3, padx=5, pady=5, sticky='w')
-        self.participant_type_combobox.set('Estudiante') # Valor por defecto
+        self.participant_type_combobox.set('Estudiante')
 
         ttk.Label(input_frame, text="Nombre:").grid(row=0, column=4, padx=5, pady=5, sticky='w')
         self.participant_name_entry = ttk.Entry(input_frame, width=30)
         self.participant_name_entry.grid(row=0, column=5, padx=5, pady=5, sticky='w')
 
-        # Fila 2
         ttk.Label(input_frame, text="Apellido:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.participant_last_name_entry = ttk.Entry(input_frame, width=30)
         self.participant_last_name_entry.grid(row=1, column=1, padx=5, pady=5, sticky='w')
@@ -385,7 +377,6 @@ class DataAdminView(tk.Frame):
         self.participant_phone_entry = ttk.Entry(input_frame, width=20)
         self.participant_phone_entry.grid(row=1, column=5, padx=5, pady=5, sticky='w')
 
-        # Fila 3
         ttk.Label(input_frame, text="Email:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
         self.participant_email_entry = ttk.Entry(input_frame, width=40)
         self.participant_email_entry.grid(row=2, column=1, padx=5, pady=5, sticky='w', columnspan=3)
@@ -394,7 +385,6 @@ class DataAdminView(tk.Frame):
         self.participant_carrera_entry = ttk.Entry(input_frame, width=20)
         self.participant_carrera_entry.grid(row=2, column=5, padx=5, pady=5, sticky='w')
 
-        # Botones de acción para Participantes
         buttons_frame = ttk.Frame(self.participant_tab)
         buttons_frame.pack(pady=10)
 
@@ -404,13 +394,10 @@ class DataAdminView(tk.Frame):
         ttk.Button(buttons_frame, text="Limpiar Campos", command=self._clear_participant_form).pack(side='left', padx=5)
 
     def load_participant_data(self):
-        """
-        Carga los datos de los participantes desde el controlador y los muestra en el Treeview.
-        """
+        # ... (Tu código de carga de participantes) ...
         for item in self.participant_tree.get_children():
             self.participant_tree.delete(item)
         
-        # Llama al método correcto en el controlador
         participants, error = self.participant_controller.get_all_system_participants()
         if error:
             messagebox.showerror("Error de Carga", f"No se pudieron cargar los participantes: {error}")
@@ -429,9 +416,7 @@ class DataAdminView(tk.Frame):
             ))
 
     def _load_participant_data_to_form(self, event):
-        """
-        Carga los datos de un participante seleccionado en el Treeview a los campos del formulario.
-        """
+        # ... (Tu código de carga de datos a formulario de participantes) ...
         selected_item = self.participant_tree.focus()
         if not selected_item:
             self._clear_participant_form()
@@ -462,14 +447,12 @@ class DataAdminView(tk.Frame):
             self.participant_id_entry.config(state='readonly')
 
     def _clear_participant_form(self):
-        """
-        Limpia todos los campos del formulario de participante.
-        """
+        # ... (Tu código de limpieza de formulario de participantes) ...
         self.participant_tree.selection_remove(self.participant_tree.selection())
         
         self.participant_id_entry.config(state='normal')
         self.participant_id_entry.delete(0, tk.END)
-        self.participant_type_combobox.set('Estudiante') # Volver a valor por defecto
+        self.participant_type_combobox.set('Estudiante') 
         self.participant_name_entry.delete(0, tk.END)
         self.participant_last_name_entry.delete(0, tk.END)
         self.participant_cedula_entry.delete(0, tk.END)
@@ -479,9 +462,7 @@ class DataAdminView(tk.Frame):
         self.participant_id_entry.config(state='readonly')
 
     def _add_participant(self):
-        """
-        Maneja la adición de un nuevo participante.
-        """
+        # ... (Tu código de añadir participante) ...
         tipo_participante = self.participant_type_combobox.get()
         nombre = self.participant_name_entry.get()
         apellido = self.participant_last_name_entry.get()
@@ -490,15 +471,13 @@ class DataAdminView(tk.Frame):
         telefono = self.participant_phone_entry.get()
         carrera = self.participant_carrera_entry.get()
 
-        # Validaciones de la vista
-        if not all([tipo_participante, nombre, apellido, cedula]): # Cédula es obligatoria según tu controlador
+        if not all([tipo_participante, nombre, apellido, cedula]): 
             messagebox.showerror("Error de Entrada", "Tipo, Nombre, Apellido y Cédula son obligatorios.")
             return
 
-        # El controlador maneja la lógica de la carrera para docentes, así que pasamos lo que venga
         participant_id, error = self.participant_controller.add_new_participant(
             tipo_participante, nombre, apellido, cedula, 
-            correo_electronico if correo_electronico else None, # Pasamos None si está vacío
+            correo_electronico if correo_electronico else None, 
             telefono if telefono else None,
             carrera if carrera else None
         )
@@ -510,9 +489,7 @@ class DataAdminView(tk.Frame):
             messagebox.showerror("Error al Añadir Participante", error)
 
     def _edit_participant(self):
-        """
-        Maneja la edición de un participante existente.
-        """
+        # ... (Tu código de editar participante) ...
         participant_id_str = self.participant_id_entry.get()
         if not participant_id_str:
             messagebox.showerror("Error", "Seleccione un participante de la lista para editar.")
@@ -524,7 +501,6 @@ class DataAdminView(tk.Frame):
             messagebox.showerror("Error", "ID de participante inválido.")
             return
 
-        # Recoger todos los campos y enviarlos al controlador
         tipo_participante = self.participant_type_combobox.get()
         nombre = self.participant_name_entry.get()
         apellido = self.participant_last_name_entry.get()
@@ -533,7 +509,6 @@ class DataAdminView(tk.Frame):
         telefono = self.participant_phone_entry.get()
         carrera = self.participant_carrera_entry.get()
 
-        # Tu controlador espera los argumentos explícitamente, no un diccionario **kwargs
         success, error = self.participant_controller.update_existing_participant(
             participant_id, 
             tipo_participante, 
@@ -552,9 +527,7 @@ class DataAdminView(tk.Frame):
             messagebox.showerror("Error al Editar Participante", error)
 
     def _delete_participant(self):
-        """
-        Maneja la eliminación de un participante.
-        """
+        # ... (Tu código de eliminar participante) ...
         participant_id_str = self.participant_id_entry.get()
         if not participant_id_str:
             messagebox.showerror("Error", "Seleccione un participante de la lista para eliminar.")
@@ -576,3 +549,231 @@ class DataAdminView(tk.Frame):
                 self._clear_participant_form()
             else:
                 messagebox.showerror("Error al Eliminar Participante", error)
+
+    # =======================================================
+    # ¡NUEVO CÓDIGO! Métodos y Widgets para la Pestaña de MATERIAS
+    # =======================================================
+    def _setup_subject_tab(self):
+        """
+        Configura los widgets para la gestión de materias dentro de su pestaña.
+        """
+        tree_frame = ttk.Frame(self.subject_tab)
+        tree_frame.pack(pady=10, fill='both', expand=True)
+
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
+        self.subject_tree = ttk.Treeview(tree_frame, 
+                                          columns=("ID", "Código", "Nombre", "Créditos"), 
+                                          show="headings", 
+                                          yscrollcommand=scrollbar.set)
+        scrollbar.config(command=self.subject_tree.yview)
+        scrollbar.pack(side='right', fill='y')
+
+        self.subject_tree.heading("ID", text="ID")
+        self.subject_tree.heading("Código", text="Código de Materia")
+        self.subject_tree.heading("Nombre", text="Nombre de Materia")
+        self.subject_tree.heading("Créditos", text="Créditos")
+
+        self.subject_tree.column("ID", width=50, stretch=tk.NO)
+        self.subject_tree.column("Código", width=150, stretch=tk.NO)
+        self.subject_tree.column("Nombre", width=300, stretch=tk.YES)
+        self.subject_tree.column("Créditos", width=80, stretch=tk.NO, anchor=tk.CENTER)
+
+        self.subject_tree.pack(fill='both', expand=True)
+
+        self.subject_tree.bind("<<TreeviewSelect>>", self._load_subject_data_to_form)
+
+        input_frame = ttk.LabelFrame(self.subject_tab, text="Detalles de la Materia", padding=15)
+        input_frame.pack(pady=20, fill='x', expand=False) 
+
+        ttk.Label(input_frame, text="ID:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        self.subject_id_entry = ttk.Entry(input_frame, width=10, state='readonly')
+        self.subject_id_entry.grid(row=0, column=1, padx=5, pady=5, sticky='w')
+
+        ttk.Label(input_frame, text="Código:").grid(row=0, column=2, padx=5, pady=5, sticky='w')
+        self.subject_code_entry = ttk.Entry(input_frame, width=25)
+        self.subject_code_entry.grid(row=0, column=3, padx=5, pady=5, sticky='w')
+
+        ttk.Label(input_frame, text="Nombre:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        self.subject_name_entry = ttk.Entry(input_frame, width=50)
+        self.subject_name_entry.grid(row=1, column=1, padx=5, pady=5, sticky='w', columnspan=3)
+
+        ttk.Label(input_frame, text="Créditos:").grid(row=1, column=4, padx=5, pady=5, sticky='w')
+        self.subject_credits_entry = ttk.Entry(input_frame, width=10)
+        self.subject_credits_entry.grid(row=1, column=5, padx=5, pady=5, sticky='w')
+
+        buttons_frame = ttk.Frame(self.subject_tab)
+        buttons_frame.pack(pady=10)
+
+        ttk.Button(buttons_frame, text="Añadir Materia", command=self._add_subject).pack(side='left', padx=5)
+        ttk.Button(buttons_frame, text="Editar Materia", command=self._edit_subject).pack(side='left', padx=5)
+        ttk.Button(buttons_frame, text="Eliminar Materia", command=self._delete_subject).pack(side='left', padx=5)
+        ttk.Button(buttons_frame, text="Limpiar Campos", command=self._clear_subject_form).pack(side='left', padx=5)
+
+    def load_subject_data(self):
+        """
+        Carga los datos de las materias desde el controlador y los muestra en el Treeview.
+        """
+        for item in self.subject_tree.get_children():
+            self.subject_tree.delete(item)
+        
+        # ¡MODIFICACIÓN!: Llama al método correcto en el controlador
+        subjects, error = self.subject_controller.get_all_system_subjects()
+        if error:
+            messagebox.showerror("Error de Carga", f"No se pudieron cargar las materias: {error}")
+            return
+
+        for s in subjects:
+            self.subject_tree.insert("", "end", values=(
+                s.get('id_materia'), 
+                s.get('codigo_materia'), 
+                s.get('nombre_materia'), 
+                s.get('creditos')
+            ))
+
+    def _load_subject_data_to_form(self, event):
+        """
+        Carga los datos de una materia seleccionada en el Treeview a los campos del formulario.
+        """
+        selected_item = self.subject_tree.focus()
+        if not selected_item:
+            self._clear_subject_form()
+            return
+
+        values = self.subject_tree.item(selected_item, 'values')
+        if values:
+            self.subject_id_entry.config(state='normal')
+
+            self.subject_id_entry.delete(0, tk.END)
+            self.subject_code_entry.delete(0, tk.END)
+            self.subject_name_entry.delete(0, tk.END)
+            self.subject_credits_entry.delete(0, tk.END)
+
+            self.subject_id_entry.insert(0, values[0])
+            self.subject_code_entry.insert(0, values[1])
+            self.subject_name_entry.insert(0, values[2])
+            self.subject_credits_entry.insert(0, values[3])
+
+            self.subject_id_entry.config(state='readonly')
+
+    def _clear_subject_form(self):
+        """
+        Limpia todos los campos del formulario de materia.
+        """
+        self.subject_tree.selection_remove(self.subject_tree.selection())
+        
+        self.subject_id_entry.config(state='normal')
+        self.subject_id_entry.delete(0, tk.END)
+        self.subject_code_entry.delete(0, tk.END)
+        self.subject_name_entry.delete(0, tk.END)
+        self.subject_credits_entry.delete(0, tk.END)
+        self.subject_id_entry.config(state='readonly')
+
+    def _add_subject(self):
+        """
+        Maneja la adición de una nueva materia.
+        """
+        codigo_materia = self.subject_code_entry.get().strip()
+        nombre_materia = self.subject_name_entry.get().strip()
+        creditos_str = self.subject_credits_entry.get().strip()
+
+        if not all([codigo_materia, nombre_materia]):
+            messagebox.showerror("Error de Entrada", "Código y Nombre de la materia son obligatorios.")
+            return
+        
+        creditos = None
+        if creditos_str: # Solo intenta convertir si el campo no está vacío
+            try:
+                creditos = int(creditos_str)
+                if creditos <= 0:
+                    messagebox.showerror("Error de Entrada", "Los créditos deben ser un número entero positivo.")
+                    return
+            except ValueError:
+                messagebox.showerror("Error de Entrada", "Los créditos deben ser un número entero válido.")
+                return
+
+        # ¡MODIFICACIÓN!: Llama al método correcto en el controlador
+        subject_id, error = self.subject_controller.add_new_subject(codigo_materia, nombre_materia, creditos)
+        if subject_id:
+            messagebox.showinfo("Éxito", f"Materia '{nombre_materia}' añadida con ID: {subject_id}")
+            self.load_subject_data()
+            self._clear_subject_form()
+        else:
+            messagebox.showerror("Error al Añadir Materia", error)
+
+    def _edit_subject(self):
+        """
+        Maneja la edición de una materia existente.
+        """
+        subject_id_str = self.subject_id_entry.get()
+        if not subject_id_str:
+            messagebox.showerror("Error", "Seleccione una materia de la lista para editar.")
+            return
+        
+        try:
+            subject_id = int(subject_id_str)
+        except ValueError:
+            messagebox.showerror("Error", "ID de materia inválido.")
+            return
+
+        # Recoger los campos para actualizar
+        update_data = {}
+        codigo_materia = self.subject_code_entry.get().strip()
+        nombre_materia = self.subject_name_entry.get().strip()
+        creditos_str = self.subject_credits_entry.get().strip()
+
+        if codigo_materia:
+            update_data['codigo_materia'] = codigo_materia
+        if nombre_materia:
+            update_data['nombre_materia'] = nombre_materia
+        
+        if creditos_str:
+            try:
+                creditos = int(creditos_str)
+                if creditos <= 0:
+                    messagebox.showerror("Error de Entrada", "Los créditos deben ser un número entero positivo.")
+                    return
+                update_data['creditos'] = creditos
+            except ValueError:
+                messagebox.showerror("Error de Entrada", "Los créditos deben ser un número entero válido.")
+                return
+        else: # Si el campo de créditos está vacío, lo enviamos como None
+             update_data['creditos'] = None # Permite desasignar créditos si la DB lo permite
+
+        if not update_data:
+            messagebox.showinfo("Información", "No hay campos para actualizar.")
+            return
+
+        # ¡MODIFICACIÓN!: Pasa el diccionario con **kwargs
+        success, error = self.subject_controller.update_existing_subject(subject_id, **update_data)
+        if success:
+            messagebox.showinfo("Éxito", f"Materia con ID {subject_id} actualizada.")
+            self.load_subject_data()
+            self._clear_subject_form()
+        else:
+            messagebox.showerror("Error al Editar Materia", error)
+
+    def _delete_subject(self):
+        """
+        Maneja la eliminación de una materia.
+        """
+        subject_id_str = self.subject_id_entry.get()
+        if not subject_id_str:
+            messagebox.showerror("Error", "Seleccione una materia de la lista para eliminar.")
+            return
+        
+        try:
+            subject_id = int(subject_id_str)
+        except ValueError:
+            messagebox.showerror("Error", "ID de materia inválido.")
+            return
+
+        confirm = messagebox.askyesno("Confirmar Eliminación", 
+                                      f"¿Está seguro de que desea eliminar la materia con ID {subject_id}?")
+        if confirm:
+            success, error = self.subject_controller.delete_existing_subject(subject_id)
+            if success:
+                messagebox.showinfo("Éxito", f"Materia con ID {subject_id} eliminada.")
+                self.load_subject_data()
+                self._clear_subject_form()
+            else:
+                messagebox.showerror("Error al Eliminar Materia", error)
