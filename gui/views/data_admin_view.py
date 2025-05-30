@@ -2,11 +2,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sys
+from datetime import datetime # ¡NUEVA IMPORTACIÓN! para manejar fechas en la vista
 
 # Importar los controladores necesarios
 from controllers.user_controller import UserController
 from controllers.participant_controller import ParticipantController
 from controllers.subject_controller import SubjectController # ¡NUEVA IMPORTACIÓN!
+from controllers.period_controller import PeriodController # ¡NUEVA IMPORTACIÓN!
 # from controllers.period_controller import PeriodController
 # from controllers.project_controller import ProjectController
 
@@ -26,7 +28,8 @@ class DataAdminView(tk.Frame):
         # Inicializar controladores
         self.user_controller = UserController()
         self.participant_controller = ParticipantController()
-        self.subject_controller = SubjectController() # ¡NUEVA INSTANCIA DEL CONTROLADOR!
+        self.subject_controller = SubjectController()
+        self.period_controller = PeriodController() # ¡NUEVA INSTANCIA DEL CONTROLADOR!
         # self.period_controller = PeriodController()
         # self.project_controller = ProjectController()
 
@@ -60,15 +63,15 @@ class DataAdminView(tk.Frame):
         self.notebook.add(self.participant_tab, text="Participantes")
         self._setup_participant_tab()
 
-        # --- Pestaña de Materias ¡MODIFICACIÓN! ---
+        # --- Pestaña de Materias ---
         self.subject_tab = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.subject_tab, text="Materias")
-        self._setup_subject_tab() # ¡Llamar a la configuración de materias!
+        self._setup_subject_tab()
 
-        # --- Pestaña de Periodos (Placeholder) ---
+        # --- Pestaña de Periodos ¡MODIFICACIÓN! ---
         self.period_tab = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.period_tab, text="Periodos")
-        ttk.Label(self.period_tab, text="Gestión de Periodos (próximamente)").pack(pady=50)
+        self._setup_period_tab() # ¡Llamar a la configuración de periodos!
 
         # --- Pestaña de Proyectos (Placeholder) ---
         self.project_tab = ttk.Frame(self.notebook, padding=10)
@@ -91,8 +94,10 @@ class DataAdminView(tk.Frame):
             self.load_user_data()
         elif selected_tab == "Participantes":
             self.load_participant_data()
-        elif selected_tab == "Materias": # ¡NUEVO!
+        elif selected_tab == "Materias":
             self.load_subject_data() 
+        elif selected_tab == "Periodos": # ¡NUEVO!
+            self.load_period_data()
         # Añade aquí la carga de datos para otras pestañas
 
     # =======================================================
@@ -777,3 +782,238 @@ class DataAdminView(tk.Frame):
                 self._clear_subject_form()
             else:
                 messagebox.showerror("Error al Eliminar Materia", error)
+
+
+    # =======================================================
+    # Métodos y Widgets para la Pestaña de PERIODOS
+    # =======================================================
+    def _setup_period_tab(self):
+        """
+        Configura los widgets para la gestión de períodos dentro de su pestaña.
+        """
+        # Frame superior para el Treeview de la lista de períodos
+        tree_frame = ttk.Frame(self.period_tab)
+        tree_frame.pack(pady=10, fill='both', expand=True)
+
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
+        self.period_tree = ttk.Treeview(tree_frame, 
+                                        columns=("ID", "Nombre", "Fecha Inicio", "Fecha Fin", "Activo"), 
+                                        show="headings", 
+                                        yscrollcommand=scrollbar.set)
+        scrollbar.config(command=self.period_tree.yview)
+        scrollbar.pack(side='right', fill='y')
+
+        # Definir encabezados de las columnas (basado en tu esquema 'periodos')
+        self.period_tree.heading("ID", text="ID")
+        self.period_tree.heading("Nombre", text="Nombre del Período")
+        self.period_tree.heading("Fecha Inicio", text="Fecha de Inicio")
+        self.period_tree.heading("Fecha Fin", text="Fecha de Fin")
+        self.period_tree.heading("Activo", text="Activo")
+
+        # Configurar anchos de columna (ajusta según necesites)
+        self.period_tree.column("ID", width=50, stretch=tk.NO)
+        self.period_tree.column("Nombre", width=200, stretch=tk.YES)
+        self.period_tree.column("Fecha Inicio", width=120, stretch=tk.NO)
+        self.period_tree.column("Fecha Fin", width=120, stretch=tk.NO)
+        self.period_tree.column("Activo", width=70, stretch=tk.NO, anchor=tk.CENTER)
+
+        self.period_tree.pack(fill='both', expand=True)
+
+        # Vincular el evento de selección en el Treeview
+        self.period_tree.bind("<<TreeviewSelect>>", self._load_period_data_to_form)
+
+        # Frame inferior para los formularios de entrada y botones de acción
+        input_frame = ttk.LabelFrame(self.period_tab, text="Detalles del Período", padding=15)
+        input_frame.pack(pady=20, fill='x', expand=False) 
+
+        # Campos de entrada
+        # Fila 1
+        ttk.Label(input_frame, text="ID:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        self.period_id_entry = ttk.Entry(input_frame, width=10, state='readonly')
+        self.period_id_entry.grid(row=0, column=1, padx=5, pady=5, sticky='w')
+
+        ttk.Label(input_frame, text="Nombre:").grid(row=0, column=2, padx=5, pady=5, sticky='w')
+        self.period_name_entry = ttk.Entry(input_frame, width=30)
+        self.period_name_entry.grid(row=0, column=3, padx=5, pady=5, sticky='w', columnspan=2)
+
+        # Fila 2
+        ttk.Label(input_frame, text="Fecha Inicio (YYYY-MM-DD):").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        self.period_start_date_entry = ttk.Entry(input_frame, width=20)
+        self.period_start_date_entry.grid(row=1, column=1, padx=5, pady=5, sticky='w')
+
+        ttk.Label(input_frame, text="Fecha Fin (YYYY-MM-DD):").grid(row=1, column=2, padx=5, pady=5, sticky='w')
+        self.period_end_date_entry = ttk.Entry(input_frame, width=20)
+        self.period_end_date_entry.grid(row=1, column=3, padx=5, pady=5, sticky='w')
+
+        ttk.Label(input_frame, text="Activo:").grid(row=1, column=4, padx=5, pady=5, sticky='w')
+        self.period_activo_var = tk.BooleanVar(value=True) 
+        self.period_activo_checkbutton = ttk.Checkbutton(input_frame, text="Sí", variable=self.period_activo_var)
+        self.period_activo_checkbutton.grid(row=1, column=5, padx=5, pady=5, sticky='w')
+
+        # Botones de acción para Períodos
+        buttons_frame = ttk.Frame(self.period_tab)
+        buttons_frame.pack(pady=10)
+
+        ttk.Button(buttons_frame, text="Añadir Período", command=self._add_period).pack(side='left', padx=5)
+        ttk.Button(buttons_frame, text="Editar Período", command=self._edit_period).pack(side='left', padx=5)
+        ttk.Button(buttons_frame, text="Eliminar Período", command=self._delete_period).pack(side='left', padx=5)
+        ttk.Button(buttons_frame, text="Limpiar Campos", command=self._clear_period_form).pack(side='left', padx=5)
+
+    def load_period_data(self):
+        """
+        Carga los datos de los períodos desde el controlador y los muestra en el Treeview.
+        """
+        for item in self.period_tree.get_children():
+            self.period_tree.delete(item)
+        
+        periods, error = self.period_controller.get_all_system_periods()
+        if error:
+            messagebox.showerror("Error de Carga", f"No se pudieron cargar los períodos: {error}")
+            return
+
+        for p in periods:
+            # Asegurarse de que las fechas sean objetos date y formatearlas si no lo son
+            start_date_str = p['fecha_inicio'].isoformat() if isinstance(p['fecha_inicio'], datetime) or isinstance(p['fecha_inicio'], type(datetime.now().date())) else str(p['fecha_inicio'])
+            end_date_str = p['fecha_fin'].isoformat() if isinstance(p['fecha_fin'], datetime) or isinstance(p['fecha_fin'], type(datetime.now().date())) else str(p['fecha_fin'])
+
+            self.period_tree.insert("", "end", values=(
+                p.get('id_periodo'), 
+                p.get('nombre_periodo'), 
+                start_date_str, 
+                end_date_str,
+                "Sí" if p.get('activo') else "No"
+            ))
+
+    def _load_period_data_to_form(self, event):
+        """
+        Carga los datos de un período seleccionado en el Treeview a los campos del formulario.
+        """
+        selected_item = self.period_tree.focus()
+        if not selected_item:
+            self._clear_period_form()
+            return
+
+        values = self.period_tree.item(selected_item, 'values')
+        if values:
+            self.period_id_entry.config(state='normal')
+
+            self.period_id_entry.delete(0, tk.END)
+            self.period_name_entry.delete(0, tk.END)
+            self.period_start_date_entry.delete(0, tk.END)
+            self.period_end_date_entry.delete(0, tk.END)
+
+            self.period_id_entry.insert(0, values[0])
+            self.period_name_entry.insert(0, values[1])
+            self.period_start_date_entry.insert(0, values[2])
+            self.period_end_date_entry.insert(0, values[3])
+            self.period_activo_var.set(values[4] == "Sí")
+
+            self.period_id_entry.config(state='readonly')
+
+    def _clear_period_form(self):
+        """
+        Limpia todos los campos del formulario de período.
+        """
+        self.period_tree.selection_remove(self.period_tree.selection())
+        
+        self.period_id_entry.config(state='normal')
+        self.period_id_entry.delete(0, tk.END)
+        self.period_name_entry.delete(0, tk.END)
+        self.period_start_date_entry.delete(0, tk.END)
+        self.period_end_date_entry.delete(0, tk.END)
+        self.period_activo_var.set(True)
+        self.period_id_entry.config(state='readonly')
+
+    def _add_period(self):
+        """
+        Maneja la adición de un nuevo período.
+        """
+        nombre_periodo = self.period_name_entry.get().strip()
+        fecha_inicio_str = self.period_start_date_entry.get().strip()
+        fecha_fin_str = self.period_end_date_entry.get().strip()
+        activo = self.period_activo_var.get()
+
+        if not all([nombre_periodo, fecha_inicio_str, fecha_fin_str]):
+            messagebox.showerror("Error de Entrada", "Nombre, fecha de inicio y fecha de fin son obligatorios.")
+            return
+
+        # El controlador ya maneja la conversión de fecha y las validaciones
+        period_id, error = self.period_controller.add_new_period(
+            nombre_periodo, fecha_inicio_str, fecha_fin_str, activo
+        )
+        if period_id:
+            messagebox.showinfo("Éxito", f"Período '{nombre_periodo}' añadido con ID: {period_id}")
+            self.load_period_data()
+            self._clear_period_form()
+        else:
+            messagebox.showerror("Error al Añadir Período", error)
+
+    def _edit_period(self):
+        """
+        Maneja la edición de un período existente.
+        """
+        period_id_str = self.period_id_entry.get()
+        if not period_id_str:
+            messagebox.showerror("Error", "Seleccione un período de la lista para editar.")
+            return
+        
+        try:
+            period_id = int(period_id_str)
+        except ValueError:
+            messagebox.showerror("Error", "ID de período inválido.")
+            return
+
+        update_data = {}
+        nombre_periodo = self.period_name_entry.get().strip()
+        fecha_inicio_str = self.period_start_date_entry.get().strip()
+        fecha_fin_str = self.period_end_date_entry.get().strip()
+        activo = self.period_activo_var.get()
+
+        if nombre_periodo:
+            update_data['nombre_periodo'] = nombre_periodo
+        if fecha_inicio_str:
+            update_data['fecha_inicio'] = fecha_inicio_str
+        if fecha_fin_str:
+            update_data['fecha_fin'] = fecha_fin_str
+        
+        update_data['activo'] = activo # Siempre se envía el estado activo
+
+        if not update_data:
+            messagebox.showinfo("Información", "No hay campos para actualizar.")
+            return
+
+        # El controlador ya maneja la conversión de fecha y las validaciones
+        success, error = self.period_controller.update_period_details(period_id, **update_data)
+        if success:
+            messagebox.showinfo("Éxito", f"Período con ID {period_id} actualizado.")
+            self.load_period_data()
+            self._clear_period_form()
+        else:
+            messagebox.showerror("Error al Editar Período", error)
+
+    def _delete_period(self):
+        """
+        Maneja la eliminación de un período.
+        """
+        period_id_str = self.period_id_entry.get()
+        if not period_id_str:
+            messagebox.showerror("Error", "Seleccione un período de la lista para eliminar.")
+            return
+        
+        try:
+            period_id = int(period_id_str)
+        except ValueError:
+            messagebox.showerror("Error", "ID de período inválido.")
+            return
+
+        confirm = messagebox.askyesno("Confirmar Eliminación", 
+                                      f"¿Está seguro de que desea eliminar el período con ID {period_id}?")
+        if confirm:
+            success, error = self.period_controller.delete_existing_period(period_id)
+            if success:
+                messagebox.showinfo("Éxito", f"Período con ID {period_id} eliminado.")
+                self.load_period_data()
+                self._clear_period_form()
+            else:
+                messagebox.showerror("Error al Eliminar Período", error)
+
