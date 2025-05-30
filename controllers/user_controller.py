@@ -1,10 +1,13 @@
 # controllers/user_controller.py
-import bcrypt
+import hashlib # No es estrictamente necesario aquí si el hashing está en el modelo, pero se mantiene si se necesita para algo más.
+from mysql.connector import Error # Importar Error para manejo específico
+
+# Importar todas las funciones CRUD y de hashing/verificación desde user_model.py
 from models.user_model import (
     create_user, get_user_by_username, get_user_by_id,
-    get_all_users, update_user, delete_user
+    get_all_users, update_user, delete_user,
+    hash_password, verify_password # Importar las funciones de hashing y verificación
 )
-from mysql.connector import Error # Importar Error para manejo específico
 
 class UserController:
     """
@@ -40,8 +43,8 @@ class UserController:
 
         user = get_user_by_username(username)
         if user:
-            hashed_password_bytes = user['contrasena_hash'].encode('utf-8')
-            if bcrypt.checkpw(password.encode('utf-8'), hashed_password_bytes):
+            # Usar la función verify_password del modelo para comparar la contraseña
+            if verify_password(user['contrasena_hash'], password):
                 if user['activo']:
                     UserController._logged_in_user = user
                     return user, None # Login exitoso
@@ -69,7 +72,8 @@ class UserController:
         """
         if not all([username, password, role]):
             return None, "Nombre de usuario, contraseña y rol son obligatorios."
-
+        if len(password) < 6: # Ejemplo de validación de contraseña simple
+            return None, "La contraseña debe tener al menos 6 caracteres."
         if role not in ['Administrador', 'Coordinador', 'Profesor']:
             return None, "Rol inválido. Los roles permitidos son 'Administrador', 'Coordinador', 'Profesor'."
 
@@ -79,22 +83,21 @@ class UserController:
         
         # Verificar si el correo electrónico ya existe (si se proporciona)
         if email:
-            all_users = get_all_users() # Podrías tener una función get_user_by_email en el modelo
+            all_users = get_all_users() # Obtener todos los usuarios para buscar si el email ya está registrado
             for u in all_users:
-                if u['email'] == email:
+                if u['correo_electronico'] == email: # Asumiendo que 'correo_electronico' es la clave
                     return None, f"El correo electrónico '{email}' ya está registrado."
 
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
         try:
-            user_id = create_user(username, hashed_password, role, full_name, email)
+            # Llamar a create_user del modelo. El modelo se encarga del hashing.
+            user_id = create_user(username, password, role, full_name, email)
             if user_id:
                 return user_id, None
             else:
                 return None, "Error desconocido al registrar el usuario. Verifique los logs del modelo."
         except Error as e:
-            # Captura errores específicos de MySQL, como duplicados si hay UNIQUE en la DB
-            if "1062" in str(e): # Duplicate entry
+            # Captura errores específicos de MySQL (ej. 1062 para duplicados)
+            if "1062" in str(e): 
                 return None, "Error de duplicidad. El usuario o correo ya existen."
             return None, f"Error de base de datos al registrar el usuario: {e}"
         except Exception as e:
@@ -145,7 +148,7 @@ class UserController:
         Args:
             user_id (int): El ID del usuario a actualizar.
             username (str, optional): Nuevo nombre de usuario.
-            password (str, optional): Nueva contraseña (si se proporciona, se hashea).
+            password (str, optional): Nueva contraseña (si se proporciona, se hashea en el modelo).
             role (str, optional): Nuevo rol.
             full_name (str, optional): Nuevo nombre completo.
             email (str, optional): Nuevo correo electrónico.
@@ -159,6 +162,8 @@ class UserController:
         if not isinstance(user_id, int):
             return False, "El ID de usuario debe ser un número entero."
         
+        # Verificar que se proporcionen campos para actualizar
+        # Se verifica si al menos uno de los argumentos opcionales no es None
         if not any(arg is not None for arg in [username, password, role, full_name, email, activo]):
             return False, "No se proporcionaron campos para actualizar."
 
@@ -170,29 +175,39 @@ class UserController:
         if error_msg:
             return False, error_msg # No existe el usuario para actualizar
 
-        if username and username != current_user['username']:
-            # Verificar si el nuevo nombre de usuario ya está en uso por otro usuario
+        # Validaciones de unicidad para username y email si se están actualizando
+        if username and username != current_user['nombre_usuario']: # Usar 'nombre_usuario' según tu modelo
             existing_user_by_name = get_user_by_username(username)
             if existing_user_by_name and existing_user_by_name['id_usuario'] != user_id:
                 return False, f"El nombre de usuario '{username}' ya está en uso por otro usuario."
         
-        if email and email != current_user['email']:
-            # Verificar si el nuevo email ya está en uso por otro usuario
+        if email and email != current_user['correo_electronico']: # Usar 'correo_electronico' según tu modelo
             all_users, _ = self.get_all_system_users()
             for u in all_users:
-                if u['email'] == email and u['id_usuario'] != user_id:
+                if u['correo_electronico'] == email and u['id_usuario'] != user_id:
                     return False, f"El correo electrónico '{email}' ya está registrado por otro usuario."
 
-        hashed_password = None
-        if password:
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        # Preparar los argumentos para la función update_user del modelo
+        update_kwargs = {}
+        if username is not None:
+            update_kwargs['nombre_usuario'] = username
+        if password is not None:
+            update_kwargs['contrasena'] = password # Pasa la contraseña en texto plano, el modelo la hasheará
+        if role is not None:
+            update_kwargs['rol'] = role
+        if full_name is not None:
+            update_kwargs['nombre_completo'] = full_name
+        if email is not None:
+            update_kwargs['correo_electronico'] = email
+        if activo is not None:
+            update_kwargs['activo'] = activo
 
         try:
-            success = update_user(user_id, username, hashed_password, role, full_name, email, activo)
+            success = update_user(user_id, **update_kwargs)
             if success:
                 # Si el usuario logueado es el que se actualizó, refrescar sus datos
                 if UserController._logged_in_user and UserController._logged_in_user['id_usuario'] == user_id:
-                    UserController._logged_in_user = get_user_by_id(user_id)
+                    UserController._logged_in_user = get_user_by_id(user_id)[0] # get_user_by_id retorna (user, error_msg)
                 return True, None
             else:
                 return False, "No se pudo actualizar el usuario. Puede que no exista o no hubo cambios."
@@ -228,7 +243,6 @@ class UserController:
             else:
                 return False, f"No se encontró un usuario con ID {user_id} para eliminar."
         except Error as e:
-            # Puedes añadir manejo de errores específicos de MySQL aquí si la FK restringe la eliminación
             return False, f"Error de base de datos al eliminar usuario: {e}"
         except Exception as e:
             return False, f"Error inesperado al eliminar usuario: {e}"

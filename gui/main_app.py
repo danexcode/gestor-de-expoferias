@@ -4,15 +4,19 @@ from tkinter import ttk
 from ttkthemes import ThemedTk
 
 # Importar todos los controladores (ahora son clases)
-from controllers.user_controller import UserController # Correcto ahora
+from controllers.user_controller import UserController
 from controllers.participant_controller import ParticipantController
 from controllers.subject_controller import SubjectController
 from controllers.period_controller import PeriodController
 from controllers.project_controller import ProjectController
 from controllers.report_controller import ReportController
 
-# Importar BaseView para que las ventanas secundarias puedan heredar de ella
-from gui.base_view import BaseView
+# Importar las vistas
+from gui.views.welcome_view import WelcomeView   
+from gui.views.login_view import LoginView
+from gui.views.register_view import RegisterView
+from gui.views.dashboard_view import DashboardView 
+from gui.views.data_admin_view import DataAdminView # ¡Nueva importación!
 
 class MainApp(ThemedTk):
     """
@@ -27,14 +31,11 @@ class MainApp(ThemedTk):
         """
         super().__init__()
         self.title("Sistema de Gestión de Proyectos Universitarios")
-        self.geometry("1024x768") # Tamaño inicial de la ventana principal
+        self.geometry("1024x768")
         self.resizable(True, True)
 
-        # --- 1. Configuración del Tema ---
-        self.set_theme("arc") # Establece un tema moderno para la aplicación
+        self.set_theme("breeze") 
 
-        # --- 2. Inicialización de Controladores ---
-        # Ahora instanciamos las clases controladoras
         self.controllers = {
             "user_controller": UserController(),
             "participant_controller": ParticipantController(),
@@ -44,56 +45,100 @@ class MainApp(ThemedTk):
             "report_controller": ReportController()
         }
 
-        # --- 3. Contenedor Principal para Vistas ---
         self.main_container = ttk.Frame(self, padding="10 10 10 10")
         self.main_container.pack(fill=tk.BOTH, expand=True)
         
-        self.current_view = None # Para mantener una referencia a la vista actual
+        self.current_view = None
+        self.logged_in_user_data = None 
 
-        # --- 4. Mostrar la primera vista (ej. Login) ---
-        self.show_welcome_screen()
+        self.show_welcome_view() 
 
-    def show_welcome_screen(self):
+    def show_welcome_view(self): 
         """
-        Muestra una pantalla de bienvenida simple como punto de partida.
-        Aquí es donde normalmente cargarías tu vista de login o dashboard.
+        Muestra la vista de bienvenida.
         """
-        self.clear_main_container()
-        
-        welcome_label = ttk.Label(self.main_container, 
-                                  text="¡Bienvenido al Sistema de Gestión de Proyectos!",
-                                  font=("Arial", 20, "bold"))
-        welcome_label.pack(pady=50)
+        self._clear_current_view()
+        self.current_view = WelcomeView(self.main_container, self)
+        self.current_view.pack(expand=True, fill='both')
 
-        info_label = ttk.Label(self.main_container,
-                               text="Esta es la ventana principal de tu aplicación.\n"
-                                    "Pronto integraremos las vistas de login y CRUD.",
-                               font=("Arial", 12))
-        info_label.pack(pady=20)
-        
-        # Ejemplo de botón para probar el tema
-        # Aquí pasamos 'self' (la instancia de MainApp, que es ThemedTk) como master
-        # y su estilo se hereda automáticamente por la BaseView.
-        test_button = ttk.Button(self.main_container, text="Probar Ventana Secundaria", 
-                                 command=lambda: BaseView(self, title="Ventana de Prueba").show_info("Prueba", "¡Esta es una ventana secundaria con el tema!"))
-        test_button.pack(pady=20)
-
-
-    def clear_main_container(self):
+    def show_login_view(self):
         """
-        Limpia todos los widgets del contenedor principal.
-        Útil antes de cargar una nueva vista.
+        Muestra la vista de inicio de sesión.
         """
-        for widget in self.main_container.winfo_children():
-            widget.destroy()
+        self._clear_current_view()
+        self.current_view = LoginView(self.main_container, self) 
+        self.current_view.pack(expand=True, fill='both')
 
-    def start(self):
+    def show_register_view(self):
         """
-        Inicia el bucle principal de la aplicación.
+        Muestra la vista de registro de nuevo usuario.
         """
-        self.mainloop()
+        self._clear_current_view()
+        self.current_view = RegisterView(self.main_container, self)
+        self.current_view.pack(expand=True, fill='both')
 
-# --- Punto de entrada de la aplicación ---
+    def on_login_success(self, user_data): 
+        """
+        Método de callback llamado por LoginView cuando el inicio de sesión es exitoso.
+        """
+        self.logged_in_user_data = user_data 
+        print(f"Usuario '{user_data['nombre_usuario']}' (ID: {user_data['id_usuario']}) ha iniciado sesión exitosamente.")
+        self.show_dashboard_view() 
+
+    def show_dashboard_view(self): 
+        """
+        Muestra la vista del dashboard principal.
+        """
+        self._clear_current_view()
+        user_role = self.logged_in_user_data['rol'] if self.logged_in_user_data else None
+        self.current_view = DashboardView(self.main_container, self, user_role=user_role)
+        self.current_view.pack(expand=True, fill='both')
+
+    def show_data_admin_view(self): # ¡Nuevo método para mostrar la vista de administración!
+        """
+        Muestra la vista de administración de datos.
+        """
+        if self.logged_in_user_data and self.logged_in_user_data['rol'] in ['Administrador', 'Coordinador']:
+            self._clear_current_view()
+            user_role = self.logged_in_user_data['rol']
+            self.current_view = DataAdminView(self.main_container, self, user_role=user_role)
+            self.current_view.pack(expand=True, fill='both')
+        else:
+            messagebox.showwarning("Acceso Denegado", "No tiene permisos para acceder a la administración de datos.")
+
+    def show_reports_view(self): # Placeholder para la vista de reportes
+        """
+        Muestra la vista de reportes.
+        """
+        if self.logged_in_user_data and self.logged_in_user_data['rol'] in ['Administrador', 'Coordinador', 'Profesor']:
+            self._clear_current_view()
+            reports_frame = ttk.Frame(self.main_container, padding="20 20 20 20")
+            reports_frame.pack(expand=True, fill='both')
+            ttk.Label(reports_frame, text="Vista de Reportes (próximamente)", font=("Arial", 20, "bold")).pack(pady=50)
+            self.current_view = reports_frame
+        else:
+            messagebox.showwarning("Acceso Denegado", "No tiene permisos para ver los reportes.")
+
+
+    def logout_and_show_login(self): 
+        """
+        Cierra la sesión del usuario actual y vuelve a la vista de login.
+        """
+        if self.controllers["user_controller"].logout_user():
+            self.logged_in_user_data = None 
+            print("Sesión cerrada exitosamente. Volviendo a la pantalla de login.")
+            self.show_login_view()
+        else:
+            print("Error al cerrar sesión.") 
+
+    def _clear_current_view(self):
+        """
+        Destruye la vista actualmente mostrada en el contenedor principal, si existe.
+        """
+        if self.current_view:
+            self.current_view.destroy()
+            self.current_view = None
+
 if __name__ == "__main__":
     app = MainApp()
-    app.start()
+    app.mainloop()
