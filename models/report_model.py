@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
-from database import create_connection, close_connection
+from db.connection import create_connection, close_connection
 
 def get_filtered_projects_report(period_id=None, student_id=None, teacher_id=None, subject_id=None):
     """

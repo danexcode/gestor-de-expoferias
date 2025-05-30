@@ -4,7 +4,7 @@ import hashlib # Para hashear contraseñas
 
 # Importar la función de conexión desde nuestro módulo database.py
 # Asegúrate de que database.py esté en el mismo nivel o en una ruta accesible
-from database import create_connection, close_connection
+from db.connection import create_connection, close_connection
 
 # --- Funciones CRUD para la tabla 'usuarios' ---
 

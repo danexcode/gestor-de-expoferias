@@ -3,7 +3,7 @@ from mysql.connector import Error
 from datetime import datetime
 
 # Importar las funciones de conexión
-from database import create_connection, close_connection
+from db.connection import create_connection, close_connection
 # También importaremos los modelos para verificar IDs si es necesario en las pruebas
 from models.period_model import get_period_by_id
 from models.subject_model import get_subject_by_id

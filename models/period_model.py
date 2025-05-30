@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import date # Para trabajar con fechas
 
-from database import create_connection, close_connection
+from db.connection import create_connection, close_connection
 
 # --- Funciones CRUD para la tabla 'periodos' ---
 

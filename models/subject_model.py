@@ -1,7 +1,7 @@
 import mysql.connector
 from mysql.connector import Error
 
-from database import create_connection, close_connection
+from db.connection import create_connection, close_connection
 
 # --- Funciones CRUD para la tabla 'materias' ---
 
