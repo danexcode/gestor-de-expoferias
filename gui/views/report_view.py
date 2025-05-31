@@ -10,10 +10,10 @@ from controllers.participant_controller import ParticipantController
 
 # Importaciones para ReportLab
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch # Para el espaciado    
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch # Para el espaciado
 
 class ReportView(ttk.Frame): 
     """
@@ -43,7 +43,6 @@ class ReportView(ttk.Frame):
         self.subject_names_to_ids = {} 
         self.participant_names_to_ids = {} 
 
-        # Almacenar el frame de resultados para poder re-crear el Treeview dentro
         self.results_frame = None 
         self.report_tree = None
         self.tree_scrollbar_y = None
@@ -85,12 +84,12 @@ class ReportView(ttk.Frame):
         self.participant_filters_frame = ttk.Frame(self.filter_options_frame)
         self._setup_participant_filters(self.participant_filters_frame)
         
-        # Frame para los botones de acción
+        # Frame para los botones de acción (Generar y Exportar)
         action_buttons_frame = ttk.Frame(self)
         action_buttons_frame.pack(pady=15)
 
         ttk.Button(action_buttons_frame, text="Generar Reporte", command=self._generate_report_button_click).pack(side=tk.LEFT, padx=5)
-        ttk.Button(action_buttons_frame, text="Exportar a PDF", command=self._export_to_pdf_button_click).pack(side=tk.LEFT, padx=5) # ¡Nuevo botón!
+        ttk.Button(action_buttons_frame, text="Exportar a PDF", command=self._export_to_pdf_button_click).pack(side=tk.LEFT, padx=5)
 
         self.results_frame = ttk.LabelFrame(self, text="Resultado del Reporte", padding="10 10 10 10")
         self.results_frame.pack(fill=tk.BOTH, expand=True, pady=10)
@@ -102,90 +101,8 @@ class ReportView(ttk.Frame):
 
         self._toggle_filters() 
 
-    def _export_to_pdf_button_click(self):
-        """
-        Maneja el clic en el botón 'Exportar a PDF'.
-        Recopila los datos del Treeview y los exporta a un archivo PDF.
-        """
-        # Obtener los encabezados de las columnas visibles
-        columns = [self.report_tree.heading(col, "text") for col in self.report_tree["displaycolumns"]]
-        
-        # Obtener los datos de las filas
-        data = []
-        for item_id in self.report_tree.get_children():
-            # Filtrar el mensaje de "No se encontraron datos"
-            if "No se encontraron" in str(self.report_tree.item(item_id, 'values')):
-                continue
-            data.append(self.report_tree.item(item_id, 'values'))
-        
-        if not data:
-            messagebox.showinfo("Exportar a PDF", "No hay datos para exportar al PDF.")
-            return
-
-        # Incluir los encabezados en los datos a exportar
-        table_data = [columns] + list(data)
-
-        # Preguntar al usuario dónde guardar el archivo
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("Archivos PDF", "*.pdf")],
-            title="Guardar Reporte como PDF"
-        )
-
-        if not file_path:
-            return # El usuario canceló la operación
-
-        try:
-            doc = SimpleDocTemplate(file_path, pagesize=A4)
-            styles = getSampleStyleSheet()
-            
-            # Título del reporte
-            report_type = self.selected_report_type.get()
-            title_text = f"Reporte de {report_type}"
-            title = Paragraph(title_text, styles['h1'])
-
-            # Configurar el estilo de la tabla
-            table = Table(table_data)
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('WORDWRAP', (0,0), (-1,-1), True) # Intentar envolver texto largo
-            ]))
-
-            # Ajustar el ancho de las columnas automáticamente (aproximado)
-            # Esto es un poco rudimentario y podría requerir ajustes finos
-            col_widths = []
-            available_width = A4[0] - 2 * inch # Ancho de página - márgenes (aprox)
-            num_cols = len(columns)
-            
-            # Distribuir el ancho de forma equitativa, o basado en el contenido si es posible
-            # Para un control más fino, se podrían calcular anchos basados en el texto más largo de cada columna
-            # Por ahora, una distribución simple:
-            if num_cols > 0:
-                each_col_width = available_width / num_cols
-                col_widths = [each_col_width] * num_cols
-            
-            table._argW = col_widths # Asignar anchos a la tabla
-
-            elements = [title, table]
-            doc.build(elements)
-
-            messagebox.showinfo("Exportar a PDF", f"Reporte exportado exitosamente a:\n{file_path}")
-            self.status_label.config(text=f"Reporte exportado a PDF: {file_path}", foreground="green")
-
-        except Exception as e:
-            messagebox.showerror("Error de Exportación", f"Ocurrió un error al exportar el reporte a PDF:\n{e}")
-            self.status_label.config(text=f"Error al exportar a PDF: {e}", foreground="red")
-
     def _create_report_treeview(self):
         """Crea y empaqueta un nuevo Treeview con sus scrollbars."""
-        # Si ya existe un Treeview, lo destruimos primero
         if self.report_tree:
             self.report_tree.destroy()
         if self.tree_scrollbar_y:
@@ -205,12 +122,11 @@ class ReportView(ttk.Frame):
         self.report_tree.configure(xscrollcommand=self.tree_scrollbar_x.set)
 
     def _setup_project_filters(self, parent_frame):
-        # ... (código existente para filtros de proyectos, no cambia)
         # Filtro por Período
         ttk.Label(parent_frame, text="Período:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.period_combobox = ttk.Combobox(parent_frame, textvariable=self.filter_period_id, state="readonly")
         self.period_combobox.grid(row=0, column=1, padx=5, pady=5, sticky=tk.EW)
-        self.period_combobox.set("--- Seleccionar ---") # Texto por defecto
+        self.period_combobox.set("--- Seleccionar ---")
 
         # Filtro por Materia
         ttk.Label(parent_frame, text="Materia:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
@@ -233,7 +149,6 @@ class ReportView(ttk.Frame):
         parent_frame.columnconfigure(1, weight=1)
 
     def _setup_participant_filters(self, parent_frame):
-        # ... (código existente para filtros de participantes, no cambia)
         # Filtro por Período
         ttk.Label(parent_frame, text="Período:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.participant_period_combobox = ttk.Combobox(parent_frame, textvariable=self.filter_period_id, state="readonly")
@@ -244,13 +159,12 @@ class ReportView(ttk.Frame):
         ttk.Label(parent_frame, text="Tipo de Participante:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         ttk.Radiobutton(parent_frame, text="Estudiante", variable=self.filter_participant_type, value="Estudiante").grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
         ttk.Radiobutton(parent_frame, text="Docente", variable=self.filter_participant_type, value="Docente").grid(row=1, column=2, padx=5, pady=5, sticky=tk.W)
-        ttk.Radiobutton(parent_frame, text="Todos", variable=self.filter_participant_type, value="").grid(row=1, column=3, padx=5, pady=5, sticky=tk.W) # Opción para no filtrar por tipo
-        self.filter_participant_type.set("") # Valor por defecto 'Todos'
+        ttk.Radiobutton(parent_frame, text="Todos", variable=self.filter_participant_type, value="").grid(row=1, column=3, padx=5, pady=5, sticky=tk.W) 
+        self.filter_participant_type.set("") 
 
         parent_frame.columnconfigure(1, weight=1)
 
     def _load_filter_options(self):
-        # ... (código existente, no cambia)
         # Cargar períodos
         periods, error = self.period_controller.get_all_system_periods()
         if not error:
@@ -279,7 +193,7 @@ class ReportView(ttk.Frame):
             messagebox.showerror("Error de Carga", f"No se pudieron cargar materias: {error}")
 
         # Cargar participantes (para filtros de estudiante/docente)
-        participants, error = self.participant_controller.get_all_system_participants() # Asumo que este es el método correcto
+        participants, error = self.participant_controller.get_all_system_participants()
         if not error:
             student_names = ["--- Seleccionar ---"]
             teacher_names = ["--- Seleccionar ---"]
@@ -299,14 +213,12 @@ class ReportView(ttk.Frame):
             messagebox.showerror("Error de Carga", f"No se pudieron cargar participantes: {error}")
 
     def _toggle_filters(self):
-        # ... (código existente, no cambia)
         report_type = self.selected_report_type.get()
         
         self.project_filters_frame.pack_forget()
         self.participant_filters_frame.pack_forget()
 
         self._clear_filter_selections()
-        # No es necesario limpiar el Treeview aquí, se hará al generar el reporte
 
         if report_type == "Proyectos":
             self.project_filters_frame.pack(fill=tk.BOTH, expand=True)
@@ -317,7 +229,6 @@ class ReportView(ttk.Frame):
         self.master.update_idletasks()
 
     def _clear_filter_selections(self):
-        # ... (código existente, no cambia)
         self.filter_period_id.set("--- Seleccionar ---")
         self.filter_subject_id.set("--- Seleccionar ---")
         self.filter_student_id.set("--- Seleccionar ---")
@@ -327,7 +238,6 @@ class ReportView(ttk.Frame):
     def _generate_report_button_click(self):
         self.status_label.config(text="") 
         
-        # Siempre recrear el Treeview antes de generar cualquier reporte
         self._create_report_treeview() 
         
         report_type = self.selected_report_type.get()
@@ -338,7 +248,6 @@ class ReportView(ttk.Frame):
             self._generate_participants_report()
 
     def _generate_projects_report(self):
-        # ... (código existente, no cambia)
         period_name = self.filter_period_id.get()
         period_id = self.period_names_to_ids.get(period_name)
 
@@ -367,7 +276,6 @@ class ReportView(ttk.Frame):
 
     def _display_projects_report(self, projects):
         """Muestra los resultados del reporte de proyectos en el Treeview."""
-        # Las columnas se definirán en el nuevo Treeview
         columns = ("ID", "Nombre", "Descripción", "Período", "Materia", "Participantes")
         self.report_tree["columns"] = columns
         self.report_tree["displaycolumns"] = columns 
@@ -386,7 +294,6 @@ class ReportView(ttk.Frame):
         self.report_tree.column("Materia", width=150, stretch=tk.NO)
         self.report_tree.column("Participantes", width=250, stretch=tk.YES)
 
-        # Insertar datos
         if projects: 
             for proj in projects:
                 participants_str = ", ".join([f"{p['nombre']} {p['apellido']} ({p['tipo_participante'][0]})" for p in proj.get('participantes', [])])
@@ -399,21 +306,16 @@ class ReportView(ttk.Frame):
                     participants_str
                 ))
         else:
-            # Mostrar un mensaje en el Treeview si no hay datos
             self.report_tree.insert("", tk.END, values=("", "", "No se encontraron proyectos para los filtros seleccionados.", "", "", ""))
-            # Ajustar la span para el número de columnas del reporte de proyectos
-            # El uso de tags es para una mejor visualización del mensaje
             self.report_tree.item(self.report_tree.get_children()[-1], tags=('no_data_message',))
-            # Configurar el estilo del tag si aún no está configurado
             try:
                 self.report_tree.tag_configure('no_data_message', background='lightyellow', foreground='gray')
             except tk.TclError:
-                pass # El tag ya fue configurado
+                pass 
             self.status_label.config(text="No se encontraron proyectos.", foreground="orange")
 
 
     def _generate_participants_report(self):
-        # ... (código existente, no cambia)
         period_name = self.filter_period_id.get()
         period_id = self.period_names_to_ids.get(period_name)
 
@@ -436,7 +338,6 @@ class ReportView(ttk.Frame):
 
     def _display_participants_report(self, participants):
         """Muestra los resultados del reporte de participantes en el Treeview."""
-        # Las columnas se definirán en el nuevo Treeview
         columns = ("ID", "Nombre Completo", "CI", "Tipo", "Carrera", "Proyectos Asociados")
         self.report_tree["columns"] = columns
         self.report_tree["displaycolumns"] = columns
@@ -455,7 +356,6 @@ class ReportView(ttk.Frame):
         self.report_tree.column("Carrera", width=150, stretch=tk.YES)
         self.report_tree.column("Proyectos Asociados", width=300, stretch=tk.YES)
 
-        # Insertar datos
         if participants: 
             for part in participants:
                 self.report_tree.insert("", tk.END, values=(
@@ -467,16 +367,159 @@ class ReportView(ttk.Frame):
                     part['proyectos_asociados'] if part['proyectos_asociados'] else "Ninguno"
                 ))
         else:
-            # Mostrar un mensaje en el Treeview si no hay datos
             self.report_tree.insert("", tk.END, values=("", "", "No se encontraron participantes para los filtros seleccionados.", "", "", ""))
-            # Ajustar la span para el número de columnas del reporte de participantes
-            # El uso de tags es para una mejor visualización del mensaje
             self.report_tree.item(self.report_tree.get_children()[-1], tags=('no_data_message',))
             try:
                 self.report_tree.tag_configure('no_data_message', background='lightyellow', foreground='gray')
             except tk.TclError:
-                pass # El tag ya fue configurado
+                pass 
             self.status_label.config(text="No se encontraron participantes.", foreground="orange")
 
-    # Eliminamos _clear_treeview_items y _reset_treeview_columns
-    # porque ahora recreamos el Treeview completo
+    def _export_to_pdf_button_click(self):
+        """
+        Maneja el clic en el botón 'Exportar a PDF'.
+        Recopila los datos del Treeview y los exporta a un archivo PDF.
+        """
+        # Obtener los encabezados de las columnas visibles
+        columns = [self.report_tree.heading(col, "text") for col in self.report_tree["displaycolumns"]]
+        
+        # Obtener los datos de las filas
+        data = []
+        for item_id in self.report_tree.get_children():
+            # Filtrar el mensaje de "No se encontraron datos"
+            row_values = self.report_tree.item(item_id, 'values')
+            if row_values and "No se encontraron" in str(row_values[0]): # Asumo que el mensaje está en la primera columna
+                continue
+            data.append(row_values)
+        
+        if not data:
+            messagebox.showinfo("Exportar a PDF", "No hay datos para exportar al PDF.")
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("Archivos PDF", "*.pdf")],
+            title="Guardar Reporte como PDF"
+        )
+
+        if not file_path:
+            return # El usuario canceló la operación
+
+        try:
+            doc = SimpleDocTemplate(file_path, pagesize=A4)
+            styles = getSampleStyleSheet()
+            
+            # Definir un estilo para los párrafos dentro de las celdas
+            # Este estilo permite que el texto se envuelva automáticamente
+            cell_style = ParagraphStyle(
+                'CellBodyText',
+                parent=styles['Normal'],
+                fontSize=8, # Un tamaño de fuente un poco más pequeño para tablas densas
+                leading=10, # Espaciado entre líneas
+                wordWrap='CJK', # Asegura que palabras largas sin espacios se rompan (útil para URLs, etc.)
+                alignment=0, # TA_LEFT
+            )
+
+            # Preparar los datos de la tabla, envolviendo el texto largo en Paragraphs
+            processed_data = []
+            
+            # Añadir encabezados
+            processed_data.append([Paragraph(header, styles['h4']) for header in columns]) # Encabezados también como Paragraphs
+            
+            report_type = self.selected_report_type.get()
+
+            for row_values in data:
+                current_row = []
+                # Para cada columna, decidimos si usar Paragraph o una cadena simple
+                if report_type == "Proyectos":
+                    # Columns: "ID", "Nombre", "Descripción", "Período", "Materia", "Participantes"
+                    # ID: Texto simple
+                    current_row.append(str(row_values[0])) 
+                    # Nombre: Puede ser largo
+                    current_row.append(Paragraph(str(row_values[1]), cell_style))
+                    # Descripción: Larga
+                    current_row.append(Paragraph(str(row_values[2]), cell_style))
+                    # Período: Moderado
+                    current_row.append(Paragraph(str(row_values[3]), cell_style))
+                    # Materia: Moderado
+                    current_row.append(Paragraph(str(row_values[4]), cell_style))
+                    # Participantes: Muy largo
+                    current_row.append(Paragraph(str(row_values[5]), cell_style))
+                elif report_type == "Participantes":
+                    # Columns: "ID", "Nombre Completo", "CI", "Tipo", "Carrera", "Proyectos Asociados"
+                    # ID: Texto simple
+                    current_row.append(str(row_values[0]))
+                    # Nombre Completo: Moderado
+                    current_row.append(Paragraph(str(row_values[1]), cell_style))
+                    # CI: Texto simple
+                    current_row.append(str(row_values[2]))
+                    # Tipo: Texto simple
+                    current_row.append(str(row_values[3]))
+                    # Carrera: Moderado
+                    current_row.append(Paragraph(str(row_values[4]), cell_style))
+                    # Proyectos Asociados: Muy largo
+                    current_row.append(Paragraph(str(row_values[5]), cell_style))
+                
+                processed_data.append(current_row)
+
+            # Título del reporte
+            title_text = f"Reporte de {report_type}"
+            title = Paragraph(title_text, styles['h1'])
+
+            # Configurar el estilo de la tabla
+            table = Table(processed_data) # Usar los datos procesados con Paragraphs
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#666666')), # Encabezado más oscuro
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')), # Filas de datos
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'), # Alinear contenido al TOP para mejor lectura
+                # No necesitamos 'WORDWRAP' en TableStyle si usamos Paragraphs
+            ]))
+
+            # Ajustar el ancho de las columnas manualmente para un mejor control
+            # Estos anchos son ejemplos y deben ser ajustados según tus datos reales
+            # Suma de anchos debe ser <= (A4[0] - 2 * inch)
+            available_width = A4[0] - 2 * inch # Ancho de página - márgenes (aprox 595 - 72 - 72 = 451 puntos)
+
+            if report_type == "Proyectos":
+                # Anchos en puntos (1 pulgada = 72 puntos)
+                # ID, Nombre, Descripción, Período, Materia, Participantes
+                # 50, 100, 150, 80, 80, 150 -> Suma = 610, muy grande
+                # Ajustando a un total de ~450 puntos
+                table._argW = [
+                    0.5 * inch,  # ID (36 pts)
+                    1.2 * inch,  # Nombre del Proyecto (86.4 pts)
+                    1.8 * inch,  # Descripción (129.6 pts)
+                    1.0 * inch,  # Período (72 pts)
+                    1.0 * inch,  # Materia (72 pts)
+                    2.0 * inch   # Participantes (144 pts)
+                ]
+            elif report_type == "Participantes":
+                # Anchos en puntos
+                # ID, Nombre Completo, CI, Tipo, Carrera, Proyectos Asociados
+                table._argW = [
+                    0.5 * inch,  # ID (36 pts)
+                    1.5 * inch,  # Nombre Completo (108 pts)
+                    0.8 * inch,  # CI (57.6 pts)
+                    0.8 * inch,  # Tipo (57.6 pts)
+                    1.2 * inch,  # Carrera (86.4 pts)
+                    2.2 * inch   # Proyectos Asociados (158.4 pts)
+                ]
+            
+            # Asegúrate de que la suma de los anchos de columna no exceda el ancho disponible
+            # Si excede, ReportLab podría lanzar un error o generar un PDF mal formado.
+            # Puedes imprimir sum(table._argW) y available_width para depurar.
+
+            elements = [title, Spacer(1, 0.2*inch), table] # Añadir un espacio después del título
+            doc.build(elements)
+
+            messagebox.showinfo("Exportar a PDF", f"Reporte exportado exitosamente a:\n{file_path}")
+            self.status_label.config(text=f"Reporte exportado a PDF: {file_path}", foreground="green")
+
+        except Exception as e:
+            messagebox.showerror("Error de Exportación", f"Ocurrió un error al exportar el reporte a PDF:\n{e}")
+            self.status_label.config(text=f"Error al exportar a PDF: {e}", foreground="red")
