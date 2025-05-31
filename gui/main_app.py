@@ -17,6 +17,7 @@ from gui.views.login_view import LoginView
 from gui.views.register_view import RegisterView
 from gui.views.dashboard_view import DashboardView 
 from gui.views.data_admin_view import DataAdminView # ¡Nueva importación!
+from gui.views.report_view import ReportView # ¡Nueva importación!
 
 class MainApp(ThemedTk):
     """
@@ -106,16 +107,18 @@ class MainApp(ThemedTk):
         else:
             messagebox.showwarning("Acceso Denegado", "No tiene permisos para acceder a la administración de datos.")
 
-    def show_reports_view(self): # Placeholder para la vista de reportes
+    def show_reports_view(self): 
         """
         Muestra la vista de reportes.
         """
         if self.logged_in_user_data and self.logged_in_user_data['rol'] in ['Administrador', 'Coordinador', 'Profesor']:
             self._clear_current_view()
-            reports_frame = ttk.Frame(self.main_container, padding="20 20 20 20")
-            reports_frame.pack(expand=True, fill='both')
-            ttk.Label(reports_frame, text="Vista de Reportes (próximamente)", font=("Arial", 20, "bold")).pack(pady=50)
-            self.current_view = reports_frame
+            # Instancia ReportView y pásale self (la MainApp)
+            self.current_view = ReportView(self.main_container, self)
+            self.current_view.pack(expand=True, fill='both')
+            # Si estás usando el scroll vertical en MainApp, recuerda actualizar el layout
+            # self.update_idletasks()
+            # self.canvas.configure(scrollregion=self.canvas.bbox("all")) # Si aplicaste la solución Canvas
         else:
             messagebox.showwarning("Acceso Denegado", "No tiene permisos para ver los reportes.")
 
