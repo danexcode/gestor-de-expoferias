@@ -12,11 +12,6 @@ from controllers.period_controller import PeriodController
 from controllers.project_controller import ProjectController
 
 class DataAdminView(tk.Frame):
-    """
-    Vista para la administración de datos de la aplicación.
-    Permite a los usuarios gestionar usuarios, participantes, materias, periodos y proyectos
-    a través de un sistema de pestañas (Notebook).
-    """
     def __init__(self, master, app_controller_callback, user_role=None):
         super().__init__(master)
         self.master = master
@@ -24,11 +19,24 @@ class DataAdminView(tk.Frame):
         self.user_role = user_role
 
         # Inicializar controladores
-        self.user_controller = UserController()
-        self.participant_controller = ParticipantController()
-        self.subject_controller = SubjectController()
-        self.period_controller = PeriodController()
-        self.project_controller = ProjectController() # ¡NUEVA INSTANCIA DEL CONTROLADOR!
+        # Asume que estos controladores están disponibles o se inicializan aquí
+        # Por ejemplo:
+        # self.user_controller = self.app_controller_callback.get_controller("user_controller")
+        # self.participant_controller = self.app_controller_callback.get_controller("participant_controller")
+        # self.subject_controller = self.app_controller_callback.get_controller("subject_controller")
+        # self.period_controller = self.app_controller_callback.get_controller("period_controller")
+        # self.project_controller = self.app_controller_callback.get_controller("project_controller")
+
+        # Asumo que tienes una forma de acceder a los controladores,
+        # si no, asegúrate de que se inicialicen aquí o se pasen correctamente.
+        # Por simplicidad, los dejo como estaban en tu código original,
+        # pero es mejor que el controlador principal los inyecte.
+        self.user_controller = self.app_controller_callback.controllers["user_controller"]
+        self.participant_controller = self.app_controller_callback.controllers["participant_controller"]
+        self.subject_controller = self.app_controller_callback.controllers["subject_controller"]
+        self.period_controller = self.app_controller_callback.controllers["period_controller"]
+        self.project_controller = self.app_controller_callback.controllers["project_controller"]
+
 
         # Variables para los Combobox de Periodos y Materias
         self.period_options = {} # {nombre: id}
@@ -47,9 +55,31 @@ class DataAdminView(tk.Frame):
         """
         self.pack(expand=True, fill='both', padx=10, pady=10)
 
-        # Título de la vista
-        ttk.Label(self, text="Administración de Datos del Sistema", 
-                  font=("Arial", 20, "bold")).pack(pady=15)
+        # --- INICIO DE CAMBIOS PARA EL BOTÓN Y EL TÍTULO ---
+
+        # 1. Crear un Frame superior para el botón y el título
+        top_bar_frame = ttk.Frame(self)
+        top_bar_frame.pack(fill='x', pady=15) # Ocupa todo el ancho disponible
+
+        # 2. Botón para volver al Dashboard, ahora dentro de top_bar_frame
+        back_button = ttk.Button(top_bar_frame, text="Volver al Dashboard", 
+                                 command=self.app_controller_callback.show_dashboard_view,
+                                 style='TButton')
+        # Usamos .pack(side='left', anchor='nw', padx=5) para posicionarlo a la izquierda
+        # sticky='w' en grid o side='left' con anchor='nw' en pack es lo que necesitas
+        back_button.pack(side='left', anchor='nw', padx=5) # padx para un pequeño margen
+
+        # 3. Título de la vista, también dentro de top_bar_frame
+        # Lo empaquetamos después del botón para que se posicione a su derecha
+        # O lo empaquetamos con .pack() normal si queremos que se centre automáticamente
+        # dentro del espacio restante en top_bar_frame.
+        ttk.Label(top_bar_frame, text="Administración de Datos del Sistema", 
+                  font=("Arial", 20, "bold")).pack(side='left', expand=True, padx=20) 
+        # side='left' para que esté al lado del botón, expand=True para que tome el espacio restante
+        # padx para un margen si quieres que esté más separado del botón.
+
+        # --- FIN DE CAMBIOS ---
+
 
         # Crear el Notebook (sistema de pestañas)
         self.notebook = ttk.Notebook(self)
@@ -60,6 +90,7 @@ class DataAdminView(tk.Frame):
         self.notebook.add(self.user_tab, text="Usuarios")
         self._setup_user_tab()
 
+        # ... (el resto de tus pestañas y métodos) ...
         # --- Pestaña de Participantes ---
         self.participant_tab = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.participant_tab, text="Participantes")
@@ -79,12 +110,6 @@ class DataAdminView(tk.Frame):
         self.project_tab = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.project_tab, text="Proyectos")
         self._setup_project_tab() # ¡Llamar a la configuración de proyectos!
-
-        # Botón para volver al Dashboard (fuera de las pestañas)
-        back_button = ttk.Button(self, text="Volver al Dashboard", 
-                                 command=self.app_controller_callback.show_dashboard_view,
-                                 style='TButton')
-        back_button.pack(pady=10)
 
     def _on_tab_change(self, event):
         """
@@ -123,8 +148,6 @@ class DataAdminView(tk.Frame):
         else:
             self.subject_options = {}
             print(f"Advertencia: No se pudieron cargar materias para combobox: {error_s}") # Solo para depuración
-
-
     # =======================================================
     # Métodos y Widgets para la Pestaña de USUARIOS
     # =======================================================
