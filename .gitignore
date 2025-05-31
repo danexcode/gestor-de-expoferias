@@ -1,0 +1,19 @@
+# .env
+.env
+.env.example
+
+# Virtual environment
+.env
+.env.example
+
+# IDE
+.idea
+.vscode
+
+# Logs
+*.log
+
+# Build
+build
+
+env

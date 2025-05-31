@@ -1,23 +1,25 @@
 # gui/main_app.py
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from ttkthemes import ThemedTk
 
-# Importar todos los controladores (ahora son clases)
+# Importar todos los controladores
 from controllers.user_controller import UserController
 from controllers.participant_controller import ParticipantController
 from controllers.subject_controller import SubjectController
 from controllers.period_controller import PeriodController
 from controllers.project_controller import ProjectController
 from controllers.report_controller import ReportController
+from controllers.communication_controller import CommunicationController 
 
 # Importar las vistas
 from gui.views.welcome_view import WelcomeView   
 from gui.views.login_view import LoginView
 from gui.views.register_view import RegisterView
 from gui.views.dashboard_view import DashboardView 
-from gui.views.data_admin_view import DataAdminView # ¡Nueva importación!
-from gui.views.report_view import ReportView # ¡Nueva importación!
+from gui.views.data_admin_view import DataAdminView 
+from gui.views.report_view import ReportView 
+from gui.views.communication_tools_view import CommunicationToolsView 
 
 class MainApp(ThemedTk):
     """
@@ -43,7 +45,8 @@ class MainApp(ThemedTk):
             "subject_controller": SubjectController(),
             "period_controller": PeriodController(),
             "project_controller": ProjectController(),
-            "report_controller": ReportController()
+            "report_controller": ReportController(),
+            "communication_controller": CommunicationController() 
         }
 
         self.main_container = ttk.Frame(self, padding="10 10 10 10")
@@ -52,53 +55,38 @@ class MainApp(ThemedTk):
         self.current_view = None
         self.logged_in_user_data = None 
 
+        # Eliminar esta línea, ya no necesitamos mantener una referencia persistente
+        # self.communication_tools_view = None 
+
         self.show_welcome_view() 
 
     def show_welcome_view(self): 
-        """
-        Muestra la vista de bienvenida.
-        """
         self._clear_current_view()
         self.current_view = WelcomeView(self.main_container, self)
         self.current_view.pack(expand=True, fill='both')
 
     def show_login_view(self):
-        """
-        Muestra la vista de inicio de sesión.
-        """
         self._clear_current_view()
         self.current_view = LoginView(self.main_container, self) 
         self.current_view.pack(expand=True, fill='both')
 
     def show_register_view(self):
-        """
-        Muestra la vista de registro de nuevo usuario.
-        """
         self._clear_current_view()
         self.current_view = RegisterView(self.main_container, self)
         self.current_view.pack(expand=True, fill='both')
 
     def on_login_success(self, user_data): 
-        """
-        Método de callback llamado por LoginView cuando el inicio de sesión es exitoso.
-        """
         self.logged_in_user_data = user_data 
         print(f"Usuario '{user_data['nombre_usuario']}' (ID: {user_data['id_usuario']}) ha iniciado sesión exitosamente.")
         self.show_dashboard_view() 
 
     def show_dashboard_view(self): 
-        """
-        Muestra la vista del dashboard principal.
-        """
         self._clear_current_view()
         user_role = self.logged_in_user_data['rol'] if self.logged_in_user_data else None
         self.current_view = DashboardView(self.main_container, self, user_role=user_role)
         self.current_view.pack(expand=True, fill='both')
 
-    def show_data_admin_view(self): # ¡Nuevo método para mostrar la vista de administración!
-        """
-        Muestra la vista de administración de datos.
-        """
+    def show_data_admin_view(self): 
         if self.logged_in_user_data and self.logged_in_user_data['rol'] in ['Administrador', 'Coordinador']:
             self._clear_current_view()
             user_role = self.logged_in_user_data['rol']
@@ -108,25 +96,25 @@ class MainApp(ThemedTk):
             messagebox.showwarning("Acceso Denegado", "No tiene permisos para acceder a la administración de datos.")
 
     def show_reports_view(self): 
-        """
-        Muestra la vista de reportes.
-        """
         if self.logged_in_user_data and self.logged_in_user_data['rol'] in ['Administrador', 'Coordinador', 'Profesor']:
             self._clear_current_view()
-            # Instancia ReportView y pásale self (la MainApp)
             self.current_view = ReportView(self.main_container, self)
             self.current_view.pack(expand=True, fill='both')
-            # Si estás usando el scroll vertical en MainApp, recuerda actualizar el layout
-            # self.update_idletasks()
-            # self.canvas.configure(scrollregion=self.canvas.bbox("all")) # Si aplicaste la solución Canvas
         else:
             messagebox.showwarning("Acceso Denegado", "No tiene permisos para ver los reportes.")
 
+    def show_communication_tools_view(self):
+        self._clear_current_view() 
+        # Crear SIEMPRE una nueva instancia de CommunicationToolsView
+        # Esto asegura que todos sus widgets internos (Notebook, pestañas, etc.)
+        # se creen de nuevo y no haya problemas con widgets destruidos.
+        self.current_view = CommunicationToolsView(self.main_container, self) 
+        
+        self.current_view.pack(expand=True, fill='both') 
+        self.title("Herramientas de Comunicación y Certificados") 
+        print("Mostrando vista de Herramientas de Comunicación y Certificados.")
 
     def logout_and_show_login(self): 
-        """
-        Cierra la sesión del usuario actual y vuelve a la vista de login.
-        """
         if self.controllers["user_controller"].logout_user():
             self.logged_in_user_data = None 
             print("Sesión cerrada exitosamente. Volviendo a la pantalla de login.")
@@ -135,9 +123,6 @@ class MainApp(ThemedTk):
             print("Error al cerrar sesión.") 
 
     def _clear_current_view(self):
-        """
-        Destruye la vista actualmente mostrada en el contenedor principal, si existe.
-        """
         if self.current_view:
             self.current_view.destroy()
             self.current_view = None

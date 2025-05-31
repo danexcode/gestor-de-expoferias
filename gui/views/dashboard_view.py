@@ -5,7 +5,7 @@ from tkinter import ttk
 class DashboardView(tk.Frame):
     """
     Vista principal de la aplicación después del login.
-    Contiene botones para navegar a las diferentes secciones (Administrador de Datos, Reportes).
+    Contiene botones para navegar a las diferentes secciones (Administrador de Datos, Reportes, Comunicación).
     """
     def __init__(self, master, app_controller_callback, user_role=None):
         super().__init__(master)
@@ -37,6 +37,13 @@ class DashboardView(tk.Frame):
                                     width=30)
         reports_button.pack(pady=10)
         
+        # --- Nuevo Botón: Comunicación y Certificados ---
+        communication_button = ttk.Button(buttons_frame, text="Comunicación y Certificados",
+                                          command=self.show_communication_tools,
+                                          width=30)
+        communication_button.pack(pady=10)
+        # -----------------------------------------------
+        
         # Botón de Cerrar Sesión
         logout_button = ttk.Button(self, text="Cerrar Sesión", 
                                    command=self.app_controller_callback.logout_and_show_login, 
@@ -49,7 +56,7 @@ class DashboardView(tk.Frame):
         Llama al método correspondiente en el controlador principal (main_app).
         """
         print("Navegando a Administrador de Datos...")
-        self.app_controller_callback.show_data_admin_view() # ¡Descomentado y listo!
+        self.app_controller_callback.show_data_admin_view()
 
     def show_reports(self):
         """
@@ -57,4 +64,12 @@ class DashboardView(tk.Frame):
         Llama al método correspondiente en el controlador principal (main_app).
         """
         print("Navegando a Reportes...")
-        self.app_controller_callback.show_reports_view() # ¡Descomentado y listo!
+        self.app_controller_callback.show_reports_view()
+
+    def show_communication_tools(self):
+        """
+        Maneja la acción del botón 'Comunicación y Certificados'.
+        Llama al método correspondiente en el controlador principal.
+        """
+        print("Navegando a Herramientas de Comunicación y Certificados...")
+        self.app_controller_callback.show_communication_tools_view() # ¡Nueva llamada!
