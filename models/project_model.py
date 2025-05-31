@@ -5,9 +5,10 @@ from datetime import datetime
 # Importar las funciones de conexión
 from db.connection import create_connection, close_connection
 # También importaremos los modelos para verificar IDs si es necesario en las pruebas
-from models.period_model import get_period_by_id
-from models.subject_model import get_subject_by_id
-from models.participant_model import get_participant_by_id
+# Estos imports no son estrictamente necesarios para el modelo en sí, solo para el bloque __main__ de prueba.
+# from models.period_model import get_period_by_id
+# from models.subject_model import get_subject_by_id
+# from models.participant_model import get_participant_by_id
 
 # --- Funciones CRUD para la tabla 'proyectos' y 'proyectos_participantes' ---
 
@@ -44,23 +45,14 @@ def create_project(id_periodo, id_materia, nombre_proyecto, descripcion, partici
         # 2. Asociar participantes al proyecto
         if project_id and participantes_ids:
             participant_project_query = """
-            INSERT INTO proyectos_participantes (id_proyecto, id_participante)
+            INSERT IGNORE INTO proyectos_participantes (id_proyecto, id_participante)
             VALUES (%s, %s)
             """
-            for participant_id in participantes_ids:
-                try:
-                    cursor.execute(participant_project_query, (project_id, participant_id))
-                    print(f"Asociado participante {participant_id} al proyecto {project_id}")
-                except mysql.connector.IntegrityError as e:
-                    # Captura si el participante ya está asociado para evitar duplicados
-                    if e.errno == 1062: # MySQL error code for Duplicate entry for key 'PRIMARY' or 'UNIQUE'
-                        print(f"Advertencia: Participante {participant_id} ya está asociado al proyecto {project_id}.")
-                    else:
-                        raise e # Re-lanzar otros errores de integridad
-            conn.commit() # Commit final después de insertar proyecto y participantes
-        else:
-            conn.commit() # Commit si no hay participantes o el proyecto no se creó
-
+            # Usamos executemany para mayor eficiencia
+            values = [(project_id, p_id) for p_id in participantes_ids]
+            cursor.executemany(participant_project_query, values)
+            
+        conn.commit()
         print(f"Proyecto '{nombre_proyecto}' creado con ID: {project_id}")
 
     except Error as e:
@@ -92,11 +84,11 @@ def get_project_by_id(project_id):
     try:
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Obtener datos del proyecto
+        # 1. Obtener datos del proyecto, INCLUYENDO id_periodo e id_materia
         project_query = """
         SELECT p.id_proyecto, p.nombre_proyecto, p.descripcion, p.fecha_registro,
-               pe.nombre_periodo, pe.fecha_inicio AS periodo_inicio, pe.fecha_fin AS periodo_fin,
-               m.nombre_materia, m.codigo_materia
+               p.id_periodo, pe.nombre_periodo, pe.fecha_inicio AS periodo_inicio, pe.fecha_fin AS periodo_fin,
+               p.id_materia, m.nombre_materia, m.codigo_materia
         FROM proyectos p
         JOIN periodos pe ON p.id_periodo = pe.id_periodo
         JOIN materias m ON p.id_materia = m.id_materia
@@ -108,7 +100,7 @@ def get_project_by_id(project_id):
         if project_data:
             # 2. Obtener los participantes asociados a este proyecto
             participants_query = """
-            SELECT part.id_participante, part.tipo_participante, part.nombre, part.apellido, part.cedula
+            SELECT part.id_participante, part.tipo_participante, part.nombre, part.apellido, part.cedula, part.correo_electronico, part.telefono
             FROM participantes part
             JOIN proyectos_participantes pp ON part.id_participante = pp.id_participante
             WHERE pp.id_proyecto = %s
@@ -141,7 +133,8 @@ def get_all_projects():
         cursor = conn.cursor(dictionary=True)
         query = """
         SELECT p.id_proyecto, p.nombre_proyecto, p.descripcion, p.fecha_registro,
-               pe.nombre_periodo, m.nombre_materia
+               p.id_periodo, pe.nombre_periodo,
+               p.id_materia, m.nombre_materia
         FROM proyectos p
         JOIN periodos pe ON p.id_periodo = pe.id_periodo
         JOIN materias m ON p.id_materia = m.id_materia
@@ -177,21 +170,14 @@ def add_participants_to_project(project_id, new_participant_ids):
         close_connection(conn)
         return False
 
-    success = True
+    success = False
     try:
         cursor = conn.cursor()
-        query = "INSERT INTO proyectos_participantes (id_proyecto, id_participante) VALUES (%s, %s)"
-        for participant_id in new_participant_ids:
-            try:
-                cursor.execute(query, (project_id, participant_id))
-                print(f"Añadido participante {participant_id} al proyecto {project_id}.")
-            except mysql.connector.IntegrityError as e:
-                if e.errno == 1062: # Duplicate entry
-                    print(f"Advertencia: Participante {participant_id} ya estaba asociado al proyecto {project_id}.")
-                else:
-                    print(f"Error al añadir participante {participant_id} al proyecto {project_id}: {e}")
-                    success = False # Marca como fallo si es otro error de integridad
+        query = "INSERT IGNORE INTO proyectos_participantes (id_proyecto, id_participante) VALUES (%s, %s)"
+        values = [(project_id, p_id) for p_id in new_participant_ids]
+        cursor.executemany(query, values)
         conn.commit()
+        success = True # Consideramos éxito si la operación se completó sin errores de DB
     except Error as e:
         print(f"Error general al añadir participantes al proyecto: {e}")
         conn.rollback()
@@ -225,13 +211,10 @@ def remove_participants_from_project(project_id, participant_ids_to_remove):
     success = False
     try:
         cursor = conn.cursor()
-        query = "DELETE FROM proyectos_participantes WHERE id_proyecto = %s AND id_participante = %s"
-        for participant_id in participant_ids_to_remove:
-            cursor.execute(query, (project_id, participant_id))
-            if cursor.rowcount > 0:
-                print(f"Removido participante {participant_id} del proyecto {project_id}.")
-            else:
-                print(f"Participante {participant_id} no encontrado en proyecto {project_id} para remover.")
+        # Construir la parte IN del WHERE para múltiples IDs
+        placeholders = ', '.join(['%s'] * len(participant_ids_to_remove))
+        query = f"DELETE FROM proyectos_participantes WHERE id_proyecto = %s AND id_participante IN ({placeholders})"
+        cursor.execute(query, (project_id, *participant_ids_to_remove))
         conn.commit()
         success = True # Consideramos éxito si el proceso se completa
     except Error as e:
@@ -289,8 +272,11 @@ def update_project(project_id, **kwargs):
         cursor = conn.cursor()
         cursor.execute(query, tuple(values))
         conn.commit()
-        success = True
-        print(f"Proyecto con ID {project_id} actualizado exitosamente.")
+        success = (cursor.rowcount > 0) # True si se afectó al menos una fila
+        if success:
+            print(f"Proyecto con ID {project_id} actualizado exitosamente.")
+        else:
+            print(f"No se encontró proyecto con ID {project_id} o no hubo cambios para actualizar.")
     except Error as e:
         print(f"Error al actualizar proyecto: {e}")
         conn.rollback()
@@ -346,9 +332,10 @@ if __name__ == "__main__":
     # Si no tienes, crea algunos:
     # 1. Crear un periodo (si no existe '2025-I')
     print("\n--- Preparando datos de prueba (Periodo, Materia, Participantes) ---")
-    from models.period_model import create_period, get_period_by_name
-    from models.subject_model import create_subject, get_subject_by_code
-    from models.participant_model import create_participant, get_participant_by_cedula
+    # Es importante que estos modelos estén accesibles o definidos
+    from models.period_model import create_period, get_period_by_name, get_period_by_id
+    from models.subject_model import create_subject, get_subject_by_code, get_subject_by_id
+    from models.participant_model import create_participant, get_participant_by_cedula, get_participant_by_id
 
     periodo_ejemplo = get_period_by_name("2025-I")
     if not periodo_ejemplo:
