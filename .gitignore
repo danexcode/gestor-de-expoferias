@@ -1,19 +1,74 @@
-# .env
-.env
-.env.example
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environment
+# PyInstaller
+*.manifest
+*.spec
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
 .env
-.env.example
+.env.*
+!.env.example
 
 # IDE
-.idea
-.vscode
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
 
 # Logs
 *.log
+logs/
 
-# Build
-build
+# Database
+*.db
+*.sqlite3
+*.db-journal
+*.sql
 
-env
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+assets/icon.icns
+assets/icon.ico
+
+# Local development
+local_settings.py
+db/local_*.py
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+*~
