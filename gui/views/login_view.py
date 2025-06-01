@@ -60,10 +60,10 @@ class LoginView(tk.Frame):
         self.error_label.pack(pady=5)
 
         # Botón de Crear Usuario
-        create_user_button = ttk.Button(login_frame, text="Crear Nuevo Usuario", 
-                                        command=self.app_controller_callback.show_register_view, 
-                                        width=20)
-        create_user_button.pack(pady=10)
+        #create_user_button = ttk.Button(login_frame, text="Crear Nuevo Usuario", 
+        #                                command=self.app_controller_callback.show_register_view, 
+        #                                width=20)
+        #create_user_button.pack(pady=10)
 
         # Vincular la tecla Enter al botón de inicio de sesión
         self.master.bind('<Return>', lambda event=None: login_button.invoke())

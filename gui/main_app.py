@@ -12,7 +12,7 @@ from controllers.project_controller import ProjectController
 from controllers.report_controller import ReportController
 from controllers.communication_controller import CommunicationController 
 
-# Importar las vistas
+# Importar las vistas y el nuevo BaseScrollableFrame
 from gui.views.welcome_view import WelcomeView   
 from gui.views.login_view import LoginView
 from gui.views.register_view import RegisterView
@@ -55,13 +55,37 @@ class MainApp(ThemedTk):
         self.current_view = None
         self.logged_in_user_data = None 
 
-        # Eliminar esta línea, ya no necesitamos mantener una referencia persistente
-        # self.communication_tools_view = None 
+        # Configurar listener global de la rueda del ratón
+        self.bind_all("<MouseWheel>", self._on_mousewheel) # Windows/macOS
+        self.bind_all("<Button-4>", self._on_mousewheel) # Linux scroll up
+        self.bind_all("<Button-5>", self._on_mousewheel) # Linux scroll down
 
         self.show_welcome_view() 
 
+    def _on_mousewheel(self, event):
+        """Maneja el desplazamiento con la rueda del ratón de forma global."""
+        # Intenta encontrar el widget que tiene el foco para desplazarlo
+        widget = self.focus_get()
+        while widget and not hasattr(widget, 'canvas'): # Buscar un ancestro con un 'canvas'
+            widget = widget.master
+            if widget == self: # Si llegamos a la ventana principal, parar
+                break
+        
+        if hasattr(widget, 'canvas') and widget.canvas.winfo_exists():
+            canvas = widget.canvas
+            if canvas.yview() == (0.0, 1.0): # Si el canvas no tiene contenido desbordado
+                return # No hacer nada
+            
+            if event.num == 4 or event.delta > 0: # Rueda hacia arriba
+                canvas.yview_scroll(-1, "units")
+            elif event.num == 5 or event.delta < 0: # Rueda hacia abajo
+                canvas.yview_scroll(1, "units")
+            
+            return "break" # Detener la propagación del evento
+
     def show_welcome_view(self): 
         self._clear_current_view()
+        # Asegúrate de pasar el master correcto (main_container)
         self.current_view = WelcomeView(self.main_container, self)
         self.current_view.pack(expand=True, fill='both')
 
@@ -105,11 +129,7 @@ class MainApp(ThemedTk):
 
     def show_communication_tools_view(self):
         self._clear_current_view() 
-        # Crear SIEMPRE una nueva instancia de CommunicationToolsView
-        # Esto asegura que todos sus widgets internos (Notebook, pestañas, etc.)
-        # se creen de nuevo y no haya problemas con widgets destruidos.
         self.current_view = CommunicationToolsView(self.main_container, self) 
-        
         self.current_view.pack(expand=True, fill='both') 
         self.title("Herramientas de Comunicación y Certificados") 
         print("Mostrando vista de Herramientas de Comunicación y Certificados.")
@@ -127,6 +147,3 @@ class MainApp(ThemedTk):
             self.current_view.destroy()
             self.current_view = None
 
-if __name__ == "__main__":
-    app = MainApp()
-    app.mainloop()
