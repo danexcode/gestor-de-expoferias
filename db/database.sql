@@ -1,8 +1,8 @@
 -- Creación de la base de datos
-CREATE DATABASE IF NOT EXISTS expoferia_ing_db;
+CREATE DATABASE IF NOT EXISTS gestor_expoferias;
 
 -- Usar la base de datos
-USE expoferia_ing_db;
+USE gestor_expoferias;
 
 -- 1. Tabla de usuarios
 CREATE TABLE usuarios (

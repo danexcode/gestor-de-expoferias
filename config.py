@@ -32,9 +32,10 @@ for directory in [DB_DIR, ASSETS_DIR, TEMPLATES_DIR]:
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': '',
+    'password': 'admin',
     'database': 'gestor_expoferias',
-    'raise_on_warnings': True
+    'raise_on_warnings': True,
+    'auth_plugin': 'mysql_native_password',
 }
 
 # Application settings

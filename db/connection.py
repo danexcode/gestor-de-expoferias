@@ -1,12 +1,13 @@
 import mysql.connector
 from mysql.connector import Error
+from config import DB_CONFIG
 
-DB_CONFIG = {
+""" DB_CONFIG = {
     'host': 'localhost', 
-    'database': 'expoferia_ing_db',
+    'database': 'gestor_expoferias',
     'user': 'root',
-    'password': 'rootpassword'       
-}
+    'password': 'admin'       
+} """
 
 def create_connection():
     connection = None

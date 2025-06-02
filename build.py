@@ -41,7 +41,7 @@ def build():
         "PyInstaller",
         "--clean",
         "--noconfirm",
-        "gestor_expoferias.spec"
+        "gestor_expoferias.spec", 
     ])
 
 def main():

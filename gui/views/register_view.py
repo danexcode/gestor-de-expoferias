@@ -6,8 +6,9 @@ import sys
 
 # Asegúrate de que el path a 'controllers' esté en PYTHONPATH o ajusta la importación
 from controllers.user_controller import UserController
+from .background_image_frame import BackgroundImageFrame
 
-class RegisterView(tk.Frame):
+class RegisterView(BackgroundImageFrame):
     """
     Vista de registro de usuario para la aplicación.
     Permite a los usuarios crear una nueva cuenta.

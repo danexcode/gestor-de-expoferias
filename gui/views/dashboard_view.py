@@ -1,8 +1,9 @@
 # gui/views/dashboard_view.py
 import tkinter as tk
 from tkinter import ttk
+from .background_image_frame import BackgroundImageFrame
 
-class DashboardView(tk.Frame):
+class DashboardView(BackgroundImageFrame):
     """
     Vista principal de la aplicación después del login.
     Contiene botones para navegar a las diferentes secciones (Administrador de Datos, Reportes, Comunicación).

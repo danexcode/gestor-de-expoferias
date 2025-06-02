@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk 
 import os 
+import sys
 
 class WelcomeView(tk.Frame):
     """
@@ -23,7 +24,7 @@ class WelcomeView(tk.Frame):
         self.app_controller_callback = app_controller_callback
         
         # Cargar la imagen de fondo
-        self.background_image_path = "assets/welcome_background.png" # <--- RUTA DE TU IMAGEN DE FONDO
+        self.background_image_filename = "welcome_background.png" # Cambia la ruta a solo el nombre del archivo
         self.photo_image = None # Mantendrá la referencia a la imagen para evitar el garbage collection
         
         self.setup_ui() # Configura los elementos de la interfaz de usuario
@@ -32,8 +33,12 @@ class WelcomeView(tk.Frame):
         """
         Carga y redimensiona la imagen de fondo para que se ajuste a la ventana.
         """
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
-        full_image_path = os.path.join(base_dir, self.background_image_path)
+        # Detecta si está corriendo en PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            base_dir = os.path.join(sys._MEIPASS, "assets")
+        else:
+            base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+        full_image_path = os.path.join(base_dir, self.background_image_filename)
 
         try:
             original_image = Image.open(full_image_path)

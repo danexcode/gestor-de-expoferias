@@ -6,8 +6,9 @@ import sys
 
 # Asegúrate de que el path a 'controllers' esté en PYTHONPATH o ajusta la importación
 from controllers.user_controller import UserController
+from .background_image_frame import BackgroundImageFrame
 
-class LoginView(tk.Frame):
+class LoginView(BackgroundImageFrame):
     """
     Vista de inicio de sesión para la aplicación.
     Permite a los usuarios ingresar sus credenciales y autenticarse.
@@ -60,10 +61,10 @@ class LoginView(tk.Frame):
         self.error_label.pack(pady=5)
 
         # Botón de Crear Usuario
-        #create_user_button = ttk.Button(login_frame, text="Crear Nuevo Usuario", 
-        #                                command=self.app_controller_callback.show_register_view, 
-        #                                width=20)
-        #create_user_button.pack(pady=10)
+        create_user_button = ttk.Button(login_frame, text="Crear Nuevo Usuario", 
+                                        command=self.app_controller_callback.show_register_view, 
+                                        width=20)
+        create_user_button.pack(pady=10)
 
         # Vincular la tecla Enter al botón de inicio de sesión
         self.master.bind('<Return>', lambda event=None: login_button.invoke())

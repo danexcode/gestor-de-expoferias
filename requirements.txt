@@ -13,6 +13,9 @@ reportlab==4.0.4
 # Excel Handling
 openpyxl==3.1.2
 
+# Presentations
+python-pptx==0.6.23 # Agregado para manejar archivos .pptx
+
 # Email
 email-validator==2.0.0
 
